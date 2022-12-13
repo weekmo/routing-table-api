@@ -1,0 +1,6 @@
+__pycache__/
+routes*.txt
+test/
+Dockerfile-testrunner
+docker-compose.yml
+README.md

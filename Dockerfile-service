@@ -1,0 +1,14 @@
+FROM python:3.8.16-slim
+
+# RUN apk update
+# RUN apk add --update py-pip
+# make RUN apt-get update && apt-get install -y ...
+# RUN pip install --no-cache-dir ...
+
+WORKDIR /testwork
+#ADD routes.txt /testwork/routes.txt
+ADD requirements.txt /testwork/requirements.txt
+ADD service/ /testwork/service
+RUN python3 -m pip install --no-cache-dir -U -r requirements.txt
+RUN ls -l
+CMD ["python3", "-m", "service"]
