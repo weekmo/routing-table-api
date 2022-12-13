@@ -61,5 +61,6 @@ async def lpm_map(df,prefix):
         mas_ip = df.loc[df['v']==6,'mask'].map(lambda x : f'{int(x,16) & int_ipadd:032x}')
         mask = df.loc[df['v']==6,'addr'] == mas_ip
     return df.loc[mask.loc[mask].index]
+
 if __name__ == '__main__':
     pass

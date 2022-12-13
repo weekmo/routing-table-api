@@ -8,23 +8,18 @@ from service.utils.data import get_df_polars, prep_df, lpm_map
 HOST='0.0.0.0'
 PORT = 5000
 
-#df = get_df_polars("service/routes.txt")
-df = get_df_polars("routes.txt")
+df = get_df_polars("service/routes.txt")
 df = prep_df(df)
 
 app = FastAPI(title="Get Routing Table")
 
-"""
-All subnet with the same next hop
-"""
+
 async def lpm_update(df, prefix_ip,nh,metric,matchd="orlonger"):
-    
     if matchd == "exact":
         next_hop_df = df.loc[(df['next_hop'] == nh) & (df['prefix'] == prefix_ip.with_prefixlen)]
     else:
         next_hop_df = await lpm_map(df, prefix_ip)
         next_hop_df = next_hop_df.loc[(next_hop_df['next_hop'] == nh) & (next_hop_df['prefixlen'] !=0)]
-
     next_hop_df['metric'] = metric
     df.update(next_hop_df)
     return next_hop_df
@@ -46,7 +41,6 @@ async def get_nh(prefix: str):
     nh = next_hop_df.iloc[0]
     return {"dst":nh.prefix,"nh":nh.next_hop}
 
-# TODO: add functionality to below functions
 @app.put('/prefix/{prefix:path}/nh/{nh}/metric/{metric}')
 async def update(prefix,nh,metric: int):
     try:
