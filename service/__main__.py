@@ -2,19 +2,16 @@ from fastapi import FastAPI, HTTPException
 import uvicorn
 import ipaddress
 from starlette.responses import RedirectResponse
-from time import time
 
 # Local libraries
-from service.utils.data import get_df_polars, lpm_update, lpm_map
+from service.utils.data import get_df_polars, lpm_update, lpm_map, prep_df
 
 # Server configuration
 HOST='0.0.0.0'
 PORT = 5000
 
-start = time()
 # Read and adjust data
-df = get_df_polars("routes_sample.txt")
-print(time() - start)
+df = get_df_polars("routes.txt")
 
 # Creat the API object
 app = FastAPI(title="Get Routing Table")

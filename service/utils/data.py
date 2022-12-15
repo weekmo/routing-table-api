@@ -1,6 +1,8 @@
 import pandas as pd
 import ipaddress
 import polars as pl
+from multiprocessing import Pool
+import numpy as np
 
 """ Global params """
 msk4 = int('f' * 8,16)
@@ -75,7 +77,7 @@ def prep_df(df):
         it returns dataframe with specific columns
     """
     #""" IPv4 """
-    df.loc[df['v']==4,'nhn'] = df.loc[df['v']==4,'next_hop'].map(lambda x: int(''.join([f'{int(i):02x}' for i in x.split('.')]),16))
+    df.loc[df['v']==4,'nhn'] = df.loc[df['v']==4]['next_hop'].map(lambda x: int(''.join([f'{int(i):02x}' for i in x.split('.')]),16))
     df.loc[df['v']==4,'addr'] = df.loc[df['v']==4,'addr'].map(lambda x: ''.join([f'{int(i):02x}' for i in x.split('.')]))
     df.loc[df['v']==4,'mask'] = df.loc[df['v']==4,'prefixlen'].map(lambda x: f'{(msk4 << (32 - x)) & msk4:08x}')
     df.loc[df['v']==4,'nhn'] -= df.loc[df['v']==4,'nhn'].min()
