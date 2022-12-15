@@ -9,7 +9,7 @@ msk4 = int('f' * 8,16)
 msk6 = int('f' * 32,16)
 mxmetric = 0x8000
 
-def get_df_pandas(filename):
+def get_df_pandas(filename, proc_num:int):
     """
     This function is created specifically for this app, it might need to be refined for different use cases.
     It takes a file name as a text and return pandas dataframe using pandas
@@ -29,9 +29,9 @@ def get_df_pandas(filename):
     df[['addr','prefixlen']] = df['prefix'].str.split('/',expand=True)
     df['prefixlen'] = df['prefixlen'].astype(int)
     df['metric'] = mxmetric
-    return prep_df(df)
+    return __multi_process_prep_df(df, proc_num)
 
-def get_df_polars(filename):
+def get_df_polars(filename, proc_num):
     """
     This function is created specifically for this app, it might need to be refined for different use cases.
     It takes a file name as a text and return pandas dataframe using polars
@@ -46,6 +46,7 @@ def get_df_polars(filename):
     pandas.DataFrame
         it returns dataframe with specific columns
     """
+    
     df = pl.read_csv(filename, sep=';', has_header=False, new_columns=['prefix','next_hop']).lazy()
     df = df.with_columns([
             pl.lit(mxmetric).cast(pl.UInt16).alias('metric'),
@@ -58,10 +59,16 @@ def get_df_polars(filename):
         ).unnest('div').with_columns(
             pl.when(pl.col('addr').str.contains(':')).then(6).otherwise(4).cast(pl.UInt8).alias('v')
         )
-    df = df.collect()
-    return prep_df(df.to_pandas())
+    df = df.collect().to_pandas()
+    return __multi_process_prep_df(df, proc_num)
 
-def prep_df(df):
+def __multi_process_prep_df(df, proc_num:int):
+    sub_frames = np.array_split(df,proc_num)
+    with Pool(proc_num) as pool:
+        result = pool.map(__prep_df, sub_frames)
+    return pd.concat(result)
+
+def __prep_df(df):
     """
     This function is created specifically for this app, it might need to be refined for different use cases.
     It takes pandas.DataFrame, add more features and return it back
@@ -134,7 +141,6 @@ async def lpm_map(df,prefix):
     pandas.DataFrame
         it returns filterd dataframe with required values or empty
     """
-
     ipadd = prefix.network_address
     int_ipadd = int(ipadd)
     version = ipadd.version
