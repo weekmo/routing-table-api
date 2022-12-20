@@ -31,7 +31,7 @@ def get_df_pandas(filename, proc_num:int):
     df['metric'] = mxmetric
     return __multi_process_prep_df(df, proc_num)
 
-def get_df_polars(filename, proc_num):
+def get_df_polars(filename, proc_num:int):
     """
     This function is created specifically for this app, it might need to be refined for different use cases.
     It takes a file name as a text and return pandas dataframe using polars

@@ -4,7 +4,6 @@ from time import time
 
 from service.utils.data import get_df_polars
 
-
 def get_df(filename):
     msk4 = int('f' * 8,16)
     msk6 = int('f' * 32,16)

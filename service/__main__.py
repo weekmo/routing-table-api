@@ -3,7 +3,7 @@ import uvicorn
 import ipaddress
 from starlette.responses import RedirectResponse
 import os
-from time import time
+#from time import time
 
 # Local libraries
 from service.utils.data import get_df_polars, lpm_update, lpm_map
