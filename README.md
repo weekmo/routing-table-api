@@ -328,7 +328,59 @@ git commit -m "feat: add amazing feature"
 
 ---
 
-## 💖 Sponsor
+## � Releases
+
+### Latest Release: v0.2.0
+
+**Release Date:** January 2026
+
+**What's New:**
+- ✨ Radix tree implementation with O(k) lookup complexity
+- ⚡ LRU caching for sub-5μs cached lookups
+- 🔒 Thread-safe concurrent operations
+- 📊 Prometheus metrics integration
+- 🌐 Full IPv4 and IPv6 support
+- 🧪 Comprehensive test suite (29 tests, 39% coverage)
+- 🤖 CI/CD pipeline with automated testing
+
+### Download
+
+**Docker/Podman:**
+```bash
+podman pull ghcr.io/weekmo/routing-table-api:latest
+podman pull ghcr.io/weekmo/routing-table-api:v0.2.0
+```
+
+**Source:**
+```bash
+git clone --branch v0.2.0 https://github.com/weekmo/routing-table-api.git
+```
+
+**PyPI (Coming Soon):**
+```bash
+pip install routing-table-api
+```
+
+### Release Notes
+
+**All Releases:** [GitHub Releases](https://github.com/weekmo/routing-table-api/releases)
+
+**Changelog:** See [CHANGELOG.md](CHANGELOG.md) for detailed version history
+
+### Versioning
+
+This project follows [Semantic Versioning](https://semver.org/):
+
+- **MAJOR** version: Breaking API changes
+- **MINOR** version: New features (backward compatible)
+- **PATCH** version: Bug fixes (backward compatible)
+
+**Current:** `0.2.0` (Beta - API may change)  
+**Stable:** `1.0.0` (Coming Q2 2026)
+
+---
+
+## �💖 Sponsor
 
 [![Sponsor on GitHub](https://img.shields.io/badge/Sponsor-❤️_on_GitHub-ff69b4?logo=github)](https://github.com/sponsors/weekmo)
 
