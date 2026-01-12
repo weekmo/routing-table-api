@@ -59,8 +59,12 @@ def cached_radix_lookup(ip_str: str) -> tuple:
     cache_misses.inc()
     result = radix_tree.lookup(ip_str)
     if result:
-        # lookup returns a list of RouteInfo objects, get the first (best) match
-        best = result[0]
+        # lookup returns a list of RouteInfo objects
+        # Sort by: longest prefix (desc), lowest metric (asc), first next_hop (asc)
+        best = sorted(
+            result, 
+            key=lambda r: (-r.prefix_len, r.metric, r.nhn)
+        )[0]
         return (best.prefix, best.next_hop, best.metric)
     return None
 
