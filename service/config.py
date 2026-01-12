@@ -7,7 +7,7 @@ class Settings:
     """Application settings with environment variable support."""
 
     def __init__(self):
-        self.host: str = os.getenv("HOST", "0.0.0.0")
+        self.host: str = os.getenv("HOST", "0.0.0.0")  # nosec B104
         self.port: int = int(os.getenv("PORT", "5000"))
         self.proc_num: int = int(os.getenv("PROC_NUM", "5"))
         self.routes_file: str = os.getenv("ROUTES_FILE", "routes.txt")

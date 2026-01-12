@@ -187,9 +187,10 @@ class RadixTree:
             current = root
             for bit_pos in range(max_bits - 1, max_bits - prefix_len - 1, -1):
                 bit = (addr_int >> bit_pos) & 1
-                current = current.left if bit == 0 else current.right
-                if current is None:
+                next_node = current.left if bit == 0 else current.right
+                if next_node is None:
                     return 0
+                current = next_node
             
             # Update matching routes at this node
             for route in current.routes:
@@ -202,9 +203,10 @@ class RadixTree:
             current = root
             for bit_pos in range(max_bits - 1, max_bits - prefix_len - 1, -1):
                 bit = (addr_int >> bit_pos) & 1
-                current = current.left if bit == 0 else current.right
-                if current is None:
+                next_node = current.left if bit == 0 else current.right
+                if next_node is None:
                     return 0
+                current = next_node
             
             # Recursively update all routes in subtree
             updated_count = self._update_subtree(current, next_hop, metric)
@@ -225,14 +227,16 @@ class RadixTree:
                 count += 1
         
         # Recursively update children
-        count += self._update_subtree(node.left, next_hop, metric)
-        count += self._update_subtree(node.right, next_hop, metric)
+        if node.left is not None:
+            count += self._update_subtree(node.left, next_hop, metric)
+        if node.right is not None:
+            count += self._update_subtree(node.right, next_hop, metric)
         
         return count
     
     def get_all_routes(self) -> List[RouteInfo]:
         """Get all routes in the tree (for debugging/testing)."""
-        routes = []
+        routes: List[RouteInfo] = []
         self._collect_routes(self.ipv4_root, routes)
         self._collect_routes(self.ipv6_root, routes)
         return routes
