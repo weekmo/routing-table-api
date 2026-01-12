@@ -1,15 +1,15 @@
 # Routing Table API
 
-High-performance routing table lookup service with LPM (Longest Prefix Match) algorithm. Uses radix tree for O(prefix_length) lookups with caching and Prometheus monitoring.
+Routing table lookup service implementing Longest Prefix Match (LPM) using a radix tree. Provides REST API for route lookups and metric updates with Prometheus monitoring.
 
 ## Features
 
-- **Fast LPM Lookups**: Radix tree implementation achieving ~15μs lookups (20,928x faster than linear scan)
-- **LRU Caching**: 10,000-entry cache for frequent destination lookups
-- **Thread-Safe**: Concurrent read/write operations with threading locks
-- **Prometheus Metrics**: Built-in monitoring for latency, cache hits, errors
-- **IPv4 & IPv6 Support**: Full support for both IP versions
-- **Comprehensive Testing**: 29 unit and concurrency tests with 100% pass rate
+- Radix tree implementation with O(k) lookup complexity (k = prefix length)
+- LRU cache (10,000 entries) for frequent lookups
+- Thread-safe concurrent operations
+- Prometheus metrics export
+- IPv4 and IPv6 support
+- 29 unit and concurrency tests
 
 ## Quick Start
 
@@ -518,10 +518,8 @@ GPL-3.0-or-later
 
 ## Support
 
-For issues and questions:
-- GitHub Issues: <repository-url>/issues
-- Email: support@example.com
+For issues and questions, please open a GitHub issue.
 
----
+## License
 
-**Built with:** FastAPI • Python • Pandas • Prometheus • Docker
+GPL-3.0-or-later
