@@ -14,7 +14,7 @@ from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTEN
 from service.lib.data import get_df_polars, prep_df, lpm_map, build_radix_tree, lpm_lookup_radix
 from service.config import settings
 from service.lib.models import RouteResponse, MetricUpdateResponse, HealthResponse
-import pandas as pd
+import polars as pl
 from service.lib.radix_tree import RadixTree
 
 # Configure logging
@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 # Read and adjust data
 logger.info(f"Loading routing table from {settings.routes_file}")
-df: pd.DataFrame = get_df_polars(settings.routes_file)
+df: pl.DataFrame = get_df_polars(settings.routes_file)
 df = prep_df(df)
 logger.info(f"Loaded {len(df):,} routes into DataFrame")
 
@@ -91,43 +91,65 @@ app = FastAPI(
 )
 
 
-def lpm_update(df, prefix_ip,nh,metric,matchd="orlonger"):
+def lpm_update(df, prefix_ip, nh, metric, matchd="orlonger"):
     """
     This function is created specifically for this app, it might need to be refined for different use cases.
-    It searches and updates route(s) according to the params provided. It return sub-dataframe for error handling.
+    It searches and updates route(s) according to the params provided. Returns updated dataframe and matching rows.
 
     Parameters
     ----------
-    df : pandas.DataFrame
-        the param sould be pandas.DataFrame which needs to be updated
+    df : polars.DataFrame
+        the param should be polars.DataFrame which needs to be updated
 
     prefix_ip : ipaddress.ip_network
-        the param sould be an object of ipaddress.ip_network (IP), it is the prefix
+        the param should be an object of ipaddress.ip_network (IP), it is the prefix
     
     nh : str
-        the param sould be IP adress in string format, it is the next hop
+        the param should be IP address in string format, it is the next hop
 
     metric : int
-        the param sould be the metric value that needs to be updated in int format
+        the param should be the metric value that needs to be updated in int format
 
     matchd : str = orlonger [orlonger, exact]
-        the param sould the method for serching the routbe the metric value that needs to be updated in int format
+        the param should be the method for searching the route
 
     Returns
     -------
-    pandas.DataFrame
-        it returns filterd dataframe with required values or empty
+    tuple[polars.DataFrame, polars.DataFrame]
+        Returns (updated_df, next_hop_df) - the full updated dataframe and the filtered rows
     """
 
     if matchd == "exact":
-        next_hop_df = df.loc[(df['next_hop'] == nh) & (df['prefix'] == prefix_ip.with_prefixlen)]
+        # Exact match: filter by next_hop and exact prefix
+        mask = (pl.col('next_hop') == nh) & (pl.col('prefix') == prefix_ip.with_prefixlen)
+        next_hop_df = df.filter(mask)
+        
+        # Update metric for matching rows (polars immutable approach)
+        updated_df = df.with_columns(
+            pl.when(mask)
+              .then(pl.lit(metric))
+              .otherwise(pl.col('metric'))
+              .alias('metric')
+        )
     else:
-        next_hop_df = lpm_map(df, prefix_ip)
-        next_hop_df = next_hop_df.loc[(next_hop_df['next_hop'] == nh) & (next_hop_df['prefixlen'] !=0)]
-    
-    # Update dataframe
-    next_hop_df['metric'] = metric
-    df.update(next_hop_df)
+        # orlonger match: get all matching prefixes
+        lpm_result = lpm_map(df, prefix_ip)
+        mask = (pl.col('next_hop') == nh) & (pl.col('prefixlen') != 0)
+        next_hop_df = lpm_result.filter(mask)
+        
+        # Create a set of matching prefixes for efficient lookup
+        matching_prefixes = set(next_hop_df['prefix'].to_list()) if len(next_hop_df) > 0 else set()
+        
+        # Update metric for matching rows
+        if matching_prefixes:
+            updated_df = df.with_columns(
+                pl.when((pl.col('next_hop') == nh) & pl.col('prefix').is_in(matching_prefixes))
+                  .then(pl.lit(metric))
+                  .otherwise(pl.col('metric'))
+                  .alias('metric')
+            )
+        else:
+            updated_df = df
     
     # Update radix tree to keep in sync
     radix_tree.update_metric(
@@ -137,7 +159,7 @@ def lpm_update(df, prefix_ip,nh,metric,matchd="orlonger"):
         match_type=matchd
     )
     
-    return next_hop_df
+    return updated_df, next_hop_df
 
 @app.get("/", include_in_schema=False)
 async def root():
@@ -343,11 +365,13 @@ async def update(prefix: str, nh: str, metric: int) -> MetricUpdateResponse:
         raise HTTPException(status_code=400, detail=f"Invalid IP address or prefix: {e}")
     
     # Get search result in sub-dataframe (with write lock)
+    global df
     with df_lock:
-        next_hop_df = lpm_update(df, prefix_ip, nh, metric)
+        updated_df, next_hop_df = lpm_update(df, prefix_ip, nh, metric)
+        df = updated_df  # Reassign since polars is immutable
         
         # Verify dataframe is not empty
-        if next_hop_df.empty:
+        if len(next_hop_df) == 0:
             logger.info(f"No routes found to update: {prefix} via {nh}")
             update_counter.labels(match_type='orlonger', status='not_found').inc()
             raise HTTPException(status_code=404, detail="No route is found")
@@ -431,10 +455,12 @@ async def update_match(prefix: str, nh: str, metric: int, matchd: str) -> Metric
         raise HTTPException(status_code=400, detail=f"Invalid IP address or prefix: {e}")
     
     # Get search result in sub-dataframe (FIX: use matchd parameter instead of hardcoded "orlonger") with write lock
+    global df
     with df_lock:
-        next_hop_df = lpm_update(df, prefix_ip, nh, metric, matchd=matchd)
+        updated_df, next_hop_df = lpm_update(df, prefix_ip, nh, metric, matchd=matchd)
+        df = updated_df  # Reassign since polars is immutable
         
-        if next_hop_df.empty:
+        if len(next_hop_df) == 0:
             logger.info(f"No routes found to update: {prefix} via {nh} ({matchd})")
             update_counter.labels(match_type=matchd, status='not_found').inc()
             raise HTTPException(status_code=404, detail="No route is found")
