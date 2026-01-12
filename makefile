@@ -17,6 +17,10 @@ help:
 	@echo "  make install      - Install package in editable mode with dev dependencies"
 	@echo "  make compose-up   - Start services with docker-compose"
 	@echo "  make compose-down - Stop services with docker-compose"
+	@echo "  make build-runtime- Build production Docker image"
+	@echo "  make build-dev    - Build development Docker image with tests"
+	@echo "  make build-all    - Build all Docker image stages"
+	@echo "  make image-size   - Display Docker image sizes"
 
 # Docker targets (updated to use docker-compose instead of podman)
 build:
@@ -67,3 +71,19 @@ clean:
 	find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
 	find . -type d -name ".ruff_cache" -exec rm -rf {} + 2>/dev/null || true
 	find . -type d -name ".mypy_cache" -exec rm -rf {} + 2>/dev/null || true
+
+# Multi-stage Docker build targets
+build-runtime:
+	docker build --target runtime -t routing-table-api:latest .
+
+build-dev:
+	docker build --target development -t routing-table-api:test .
+
+build-all:
+	docker build --target builder -t routing-table-api:builder .
+	docker build --target runtime -t routing-table-api:latest .
+	docker build --target development -t routing-table-api:test .
+
+image-size:
+	@echo "Docker image sizes:"
+	@docker images routing-table-api --format "table {{.Tag}}\t{{.Size}}\t{{.CreatedAt}}"
