@@ -1,15 +1,19 @@
 ---
-# ConfigMap for routes data
+# Example Kubernetes deployment using CI/CD-built images from GHCR
+# Replace `{{IMAGE_TAG}}` with the pinned tag produced by CI (for example v0.2.0)
+
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: routing-table-data
   namespace: default
 data:
-  # In production, use a PersistentVolume or external storage
-  # For testing, routes.txt would be mounted from host or built into image
+  # Do not store very large files here. Use a PVC or external storage for routes.txt.
+  example: |
+    # small example dataset
+    192.0.2.0/24,198.51.100.1,10
+
 ---
-# Deployment for the Routing Table API
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -18,7 +22,12 @@ metadata:
   labels:
     app: routing-table-api
 spec:
-  replicas: 1
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 25%
+      maxSurge: 25%
   selector:
     matchLabels:
       app: routing-table-api
@@ -29,8 +38,8 @@ spec:
     spec:
       containers:
       - name: api
-        image: routing-table-api:latest
-        imagePullPolicy: Never  # Use local image for testing
+        image: ghcr.io/weekmo/routing-table-api:{{IMAGE_TAG}}
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 5000
           name: http
@@ -74,11 +83,10 @@ spec:
           value: "5000"
       volumes:
       - name: routes-data
-        hostPath:
-          path: /path/to/routing-table-api/routes.txt  # Update to actual path
-          type: File
+        persistentVolumeClaim:
+          claimName: routes-pvc
+
 ---
-# Service to expose the API
 apiVersion: v1
 kind: Service
 metadata:
@@ -95,8 +103,8 @@ spec:
     name: http
   selector:
     app: routing-table-api
+
 ---
-# Job for running tests
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -114,8 +122,8 @@ spec:
       restartPolicy: Never
       containers:
       - name: tests
-        image: routing-table-api:test
-        imagePullPolicy: Never  # Use local image for testing
+        image: ghcr.io/weekmo/routing-table-api:test
+        imagePullPolicy: IfNotPresent
         env:
         - name: API_URL
           value: "http://routing-table-api:5000"
@@ -138,24 +146,17 @@ spec:
             sleep 5
           done
           echo "API is ready!"
+
 ---
-# Optional: Ingress for external access (requires Ingress controller)
-# apiVersion: networking.k8s.io/v1
-# kind: Ingress
-# metadata:
-#   name: routing-table-api
-#   namespace: default
-#   annotations:
-#     nginx.ingress.kubernetes.io/rewrite-target: /
-# spec:
-#   rules:
-#   - host: routing-api.local
-#     http:
-#       paths:
-#       - path: /
-#         pathType: Prefix
-#         backend:
-#           service:
-#             name: routing-table-api
-#             port:
-#               number: 5000
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: routes-pvc
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: standard

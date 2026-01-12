@@ -96,6 +96,8 @@ make clean         # Clean artifacts
 
 ## 📦 Deployment
 
+### Deployment Options
+
 Multiple deployment options available:
 
 | Method | Use Case | Complexity | Setup Time | High Availability |
@@ -104,21 +106,78 @@ Multiple deployment options available:
 | **Podman Systemd** | Single server prod | Medium | 10 min | No |
 | **Kubernetes** | Clustered prod | High | 30+ min | Yes |
 
-**Quick Deploy:**
+### Local Development (Podman Compose)
 
 ```bash
-# Local development (recommended)
 make compose-up
-
-# Production (single server with systemd)
-cp podman-systemd/*.service ~/.config/systemd/user/
-systemctl --user enable --now routing-table-api.service
-
-# Kubernetes (production cluster)
-kubectl apply -f kubernetes-test.yaml
 ```
 
-**Deployment guides:** [docker-compose.yml](docker-compose.yml) | [podman-systemd/](podman-systemd/) | [kubernetes-test.yaml](kubernetes-test.yaml)
+**Details:** See [docker-compose.yml](docker-compose.yml)
+
+### Production Single Server (Podman Systemd)
+
+```bash
+cp podman-systemd/*.service ~/.config/systemd/user/
+systemctl --user enable --now routing-table-api.service
+```
+
+**Details:** See [podman-systemd/](podman-systemd/)
+
+### Production Cluster (Kubernetes)
+
+```bash
+# For testing manifests use `kubernetes-test.yaml`.
+# For CI-built, production-ready images use `kubernetes-deploy.yaml` (pinned tags):
+kubectl apply -f kubernetes-deploy.yaml
+```
+
+**What's included:**
+- **ConfigMap** - Routes data configuration
+- **Deployment** - 1 replica with health checks
+  - Liveness probe: 30s interval, 30s timeout
+  - Readiness probe: 10s interval, 20s initial delay
+  - Resource limits: 512Mi-2Gi memory, 500m-2000m CPU
+- **Service** - ClusterIP exposure on port 5000
+- **Job** - Integration tests with wait-for-API init container
+- **Ingress** (commented) - Optional external access with nginx
+
+**Configuration:**
+- Mounts routes.txt as read-only volume
+- Environment variables: `PYTHONUNBUFFERED=1`, `PROC_NUM=4`
+- Image: `routing-table-api:latest` (local)
+- Test image: `routing-table-api:test`
+
+**Prerequisites:**
+- Kubernetes cluster (1.20+)
+- Local images built: `podman build -t routing-table-api:latest .`
+- Routes file at: `/path/to/routing-table-api/routes.txt`
+
+**Deployment:**
+
+```bash
+# Update the hostPath in `kubernetes-deploy.yaml` to your `routes.txt` location or
+# provision a PersistentVolume and PersistentVolumeClaim (`routes-pvc`).
+# Then apply (use pinned IMAGE_TAG for production):
+kubectl apply -f kubernetes-deploy.yaml
+
+# Check status
+kubectl get pods -l app=routing-table-api
+kubectl logs -l app=routing-table-api -f
+
+# Run tests
+kubectl get jobs
+kubectl logs -l app=routing-table-api-tests -f
+
+# Port forward for local testing
+kubectl port-forward svc/routing-table-api 5000:5000
+```
+
+**Troubleshooting:**
+- Pod stuck pending: Check resource availability (`kubectl describe node`)
+- Tests failing: Verify routes.txt path and API readiness
+- Connection refused: Ensure Service and Deployment are running
+
+**Details:** See [kubernetes-test.yaml](kubernetes-test.yaml)
 
 ---
 
@@ -285,137 +344,15 @@ curl http://localhost:5000/metrics | grep cache
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please follow these guidelines:
-
-### Quick Start
-
-```bash
-# Fork and clone
-git clone https://github.com/yourusername/routing-table-api.git
-cd routing-table-api
-make install
-
-# Create feature branch
-git checkout -b feature/amazing-feature
-
-# Make changes and test
-make test-cov  # Must maintain ≥35% coverage
-make lint      # Must pass
-make type-check # Must pass
-
-# Commit using conventional commits
-git commit -m "feat: add amazing feature"
-```
-
-### Requirements
-
-- ✅ All tests pass (29/29)
-- ✅ Coverage maintained (≥35%)
-- ✅ Linter passes (`make lint`)
-- ✅ Type hints for new code
-- ✅ Google-style docstrings
-- ✅ Follow PEP 8 (enforced by ruff)
-
-### Commit Convention
-
-- `feat:` New feature
-- `fix:` Bug fix
-- `docs:` Documentation only
-- `refactor:` Code refactoring
-- `test:` Adding tests
-- `chore:` Build/tooling
-- `perf:` Performance improvement
+Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines, requirements, and the commit convention.
 
 ---
 
-## 📦 Releases
+## 📦 Releases & Changelog
 
-### Latest Release: v0.2.0
+Release notes, assets, and version history are maintained in `CHANGELOG.md` and GitHub Releases. CI/CD publishes packages and container images to GitHub Container Registry (`ghcr.io/weekmo/routing-table-api`).
 
-**Release Date:** January 2026
-
-**What's New:**
-- ✨ Radix tree implementation with O(k) lookup complexity
-- ⚡ LRU caching for sub-5μs cached lookups
-- 🔒 Thread-safe concurrent operations
-- 📊 Prometheus metrics integration
-- 🌐 Full IPv4 and IPv6 support
-- 🧪 Comprehensive test suite (29 tests, 39% coverage)
-- 🤖 CI/CD pipeline with automated testing and security scans
-- 📦 Automated package distribution and container registry publishing
-
-### Download & Install
-
-**Container Images (Recommended):**
-```bash
-# Pull from GitHub Container Registry
-podman pull ghcr.io/weekmo/routing-table-api:latest
-podman pull ghcr.io/weekmo/routing-table-api:v0.2.0
-
-# Run container
-podman run -d -p 5000:5000 -v ./routes.txt:/app/routes.txt ghcr.io/weekmo/routing-table-api:latest
-```
-
-**Python Package (GitHub Releases):**
-```bash
-# Download from releases page
-wget https://github.com/weekmo/routing-table-api/releases/download/v0.2.0/routing_table_api-0.2.0-py3-none-any.whl
-pip install routing_table_api-0.2.0-py3-none-any.whl
-
-# Or install from source
-pip install git+https://github.com/weekmo/routing-table-api.git@v0.2.0
-```
-
-**Source Code:**
-```bash
-# Clone specific release
-git clone --branch v0.2.0 https://github.com/weekmo/routing-table-api.git
-cd routing-table-api
-make install
-```
-
-### Release Assets
-
-Each release includes:
-- 📦 **Python wheel** (`.whl`) - Universal Python 3 package
-- 📄 **Source distribution** (`.tar.gz`) - Complete source code
-- 🐳 **Docker images** - Multi-arch containers on ghcr.io
-- 📝 **Release notes** - What's new and breaking changes
-
-### Automated Release Process
-
-Releases are automatically created via GitHub Actions:
-
-1. **Tag pushed** (`v*.*.*`) triggers the release workflow
-2. **Tests run** - Ensures all 29 tests pass
-3. **Packages built** - Creates wheel and source distribution
-4. **GitHub Release created** - With release notes and artifacts
-5. **Docker images pushed** - To GitHub Container Registry (ghcr.io)
-6. **Tags applied** - Both version tag and `latest`
-
-**To create a release:** Push a semantic version tag:
-```bash
-git tag -a v0.3.0 -m "Release v0.3.0"
-git push origin v0.3.0
-```
-
-### Release Notes
-
-**All Releases:** [GitHub Releases](https://github.com/weekmo/routing-table-api/releases)
-
-**Container Registry:** [GitHub Packages](https://github.com/weekmo/routing-table-api/pkgs/container/routing-table-api)
-
-### Versioning
-
-This project follows [Semantic Versioning](https://semver.org/):
-
-- **MAJOR** version: Breaking API changes
-- **MINOR** version: New features (backward compatible)
-- **PATCH** version: Bug fixes (backward compatible)
-
-**Current:** `0.2.0` (Beta - API may change)  
-**Stable:** `1.0.0` (Coming Q2 2026)
-
+For production deployments use pinned image tags (for example `ghcr.io/weekmo/routing-table-api:v1.0.0`) and set `imagePullPolicy` accordingly in `kubernetes.yaml`.
 ---
 
 ## 💖 Sponsor
@@ -447,7 +384,6 @@ For production deployments requiring:
 
 **Contact:** Open GitHub issue with `[commercial]` tag
 
-
 ---
 
 ## 📄 License
@@ -463,6 +399,7 @@ This project is open source and free to use. Sponsorship is optional and does no
 - **API Documentation:** http://localhost:5000/docs (Swagger)
 - **Alternative Docs:** http://localhost:5000/redoc
 - **CI/CD Setup:** [.github/CICD_SETUP.md](.github/CICD_SETUP.md)
+- **Contributing:** [CONTRIBUTING.md](CONTRIBUTING.md)
 - **Issues & Bugs:** [GitHub Issues](https://github.com/weekmo/routing-table-api/issues)
 
 ---
