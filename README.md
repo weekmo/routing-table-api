@@ -5,6 +5,7 @@
 ![Python](https://img.shields.io/badge/python-3.8%2B-blue)
 ![License](https://img.shields.io/badge/license-GPL--3.0-blue)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.128%2B-009688)
+[![Sponsor](https://img.shields.io/badge/Sponsor-❤️-pink?logo=github)](https://github.com/sponsors/weekmo)
 
 Routing table lookup service implementing Longest Prefix Match (LPM) using a radix tree. Provides REST API for route lookups and metric updates with Prometheus monitoring.
 
@@ -820,215 +821,58 @@ curl http://localhost:5000/metrics | grep cache
 
 ---
 
-## License
-
-GPL-3.0-or-later
-
----
-
-## Contributing
-
-We welcome contributions! Please follow these guidelines to ensure a smooth collaboration process.
-
-### Development Setup
-
-1. **Fork and clone the repository:**
-   ```bash
-   git clone https://github.com/yourusername/routing-table-api.git
-   cd routing-table-api
-   ```
-
-2. **Create a virtual environment:**
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-   ```
-
-3. **Install dependencies:**
-   ```bash
-   make install
-   # Or manually: pip install -e ".[dev]"
-   ```
-
-4. **Verify installation:**
-   ```bash
-   make test
-   # Should see: 34 tests passing
-   ```
-
-### Development Workflow
-
-1. **Create a feature branch:**
-   ```bash
-   git checkout -b feature/your-feature-name
-   # Or for bug fixes: git checkout -b fix/bug-description
-   ```
-
-2. **Make your changes and test thoroughly:**
-   ```bash
-   # Run tests
-   make test
-   
-   # Run tests with coverage
-   make test-cov
-   
-   # Ensure coverage doesn't decrease (maintain >35%)
-   # View detailed coverage report
-   make coverage-report
-   
-   # Run linter
-   make lint
-   
-   # Format code
-   make format
-   
-   # Type checking
-   make type-check
-   
-   # Test locally with Podman
-   make compose-up
-   curl http://localhost:5000/health
-   make compose-down
-   ```
-
-3. **Commit your changes:**
-   ```bash
-   git add .
-   git commit -m "feat: Add your feature description"
-   ```
-   
-   **Commit message conventions:**
-   - `feat:` New feature
-   - `fix:` Bug fix
-   - `docs:` Documentation changes only
-   - `refactor:` Code refactoring without behavior changes
-   - `test:` Adding or updating tests
-   - `chore:` Build process, tooling, dependencies
-   - `perf:` Performance improvements
-
-4. **Push and open a Pull Request:**
-   ```bash
-   git push origin feature/your-feature-name
-   ```
-   Then open a PR on GitHub with a clear description of your changes.
-
-### Code Style Guidelines
-
-- **Python Style:** Follow PEP 8 (enforced by `ruff`)
-- **Imports:** Organize and sort automatically with `make format`
-- **Type Hints:** Required for all public functions and methods
-- **Docstrings:** Use Google-style docstrings for public APIs
-  ```python
-  def lookup_route(ip: str) -> tuple[str, str]:
-      """Perform longest prefix match lookup.
-      
-      Args:
-          ip: IP address to lookup (e.g., "192.168.1.1")
-          
-      Returns:
-          Tuple of (prefix, next_hop)
-          
-      Raises:
-          ValueError: If IP address is invalid
-      """
-  ```
-- **Line Length:** Maximum 100 characters
-- **Naming:** Use `snake_case` for functions/variables, `PascalCase` for classes
-
-### Testing Requirements
-
-- **All features must include tests:** Add unit tests for new functionality
-- **Maintain coverage:** Don't decrease overall test coverage (maintain >35%)
-  - Run `make test-cov` to check coverage before submitting
-  - Aim for 80%+ coverage on new code
-  - View detailed report with `make coverage-report`
-- **All tests must pass:** Run `make test` before submitting PR
-- **Test categories:**
-  - Unit tests: `tests/test_lpm.py` - Algorithm correctness
-  - Concurrency tests: `tests/test_concurrency.py` - Thread safety
-  - Integration tests: `tests/test_service.py` - API endpoints (requires container)
-
-### Pull Request Guidelines
-
-**Before submitting:**
-- [ ] Tests pass (`make test` shows 29/29 passing)
-- [ ] Coverage maintained (`make test-cov` shows ≥35%)
-- [ ] Linter passes (`make lint` has no errors)
-- [ ] Type checking passes (`make type-check`)
-- [ ] Code is formatted (`make format`)
-- [ ] README updated if API changed
-- [ ] Changelog updated for user-facing changes
-
-**PR Title:** Clear and descriptive (e.g., "Add IPv6 support to radix tree")
-
-**PR Description should include:**
-- **What:** Brief summary of changes
-- **Why:** Motivation and context
-- **How:** High-level approach (if complex)
-- **Testing:** How you tested the changes
-- **Breaking Changes:** List any breaking changes (if applicable)
-
-### Code Review Process
-
-1. **Automated checks** must pass (tests, linting, type checking)
-2. **At least one maintainer approval** required before merge
-3. **Address review comments** promptly and professionally
-4. **Squash commits** if requested to maintain clean history
-5. **Update PR** if main branch changes significantly
-
-### Reporting Issues
-
-When reporting bugs, please include:
-
-- **Python version:** Output of `python --version`
-- **OS and version:** e.g., "Ubuntu 22.04", "macOS 14.1"
-- **Installation method:** pip, Podman, Kubernetes, etc.
-- **Steps to reproduce:** Minimal example that demonstrates the issue
-- **Expected behavior:** What you expected to happen
-- **Actual behavior:** What actually happened
-- **Error messages:** Full traceback and logs
-- **routes.txt info:** Number of routes, file size (if relevant)
-
-### Feature Requests
-
-For feature requests, please describe:
-- **Use case:** What problem does this solve?
-- **Proposed solution:** How would you like it to work?
-- **Alternatives considered:** Other approaches you've thought about
-- **Willing to contribute:** Can you implement it yourself?
-
-### Getting Help
-
-- **Questions:** Open a GitHub Discussion (preferred) or Issue
-- **Bugs:** Open a GitHub Issue with details above
-- **Security Issues:** Email maintainers privately (see pyproject.toml)
-- **Real-time chat:** Check if project has Discord/Slack (TBD)
-
-### Code of Conduct
-
-- Be respectful and inclusive
-- Welcome newcomers and help them get started
-- Focus on constructive feedback
-- Assume good intentions
-- Follow GitHub's Community Guidelines
-
----
-
 ## Sponsor
 
-This project is currently maintained by volunteers and does not require financial sponsorship at this time.
+💖 **Support this project's development!**
 
-### How You Can Support
+This project is open source and maintained by volunteers. If you find it useful and want to support continued development, consider becoming a sponsor!
 
-If you find this project useful, here are ways to help:
+### GitHub Sponsors
+
+⭐ **[Become a GitHub Sponsor](https://github.com/sponsors/weekmo)** ⭐
+
+**Benefits of sponsoring:**
+- Help sustain active maintenance and development
+- Influence the project roadmap and priorities
+- Get your name/logo in the README (for higher tiers)
+- Priority support for issues and feature requests
+- Feel good about supporting open source!
+
+**Sponsor tiers:**
+- 🥉 **$5/month** - Individual supporter (name in README)
+- 🥈 **$25/month** - Professional user (logo + link in README)
+- 🥇 **$100/month** - Organization sponsor (prominent logo, priority support)
+- 💎 **$500/month** - Enterprise sponsor (custom features, SLA support)
+
+### How to Enable GitHub Sponsors
+
+**For maintainers:** To activate the sponsor button:
+
+1. **Join GitHub Sponsors:**
+   - Visit [github.com/sponsors](https://github.com/sponsors)
+   - Complete the signup process (requires Stripe account)
+   - Set up sponsor tiers and benefits
+
+2. **Update FUNDING.yml:**
+   ```yaml
+   # In .github/FUNDING.yml, uncomment and update:
+   github: weekmo
+   ```
+
+3. **The sponsor button will appear automatically** in the repository header
+
+### Alternative Ways to Support
+
+If you find this project useful, here are other ways to help:
 
 - ⭐ **Star the repository** on GitHub to increase visibility
-- 🐛 **Report bugs** and help improve stability
+- 🐛 **Report bugs** and help improve stability  
 - 📝 **Improve documentation** - fix typos, add examples, clarify instructions
 - 🔧 **Submit pull requests** - implement features or fix bugs
 - 📢 **Share with others** who might benefit from this project
 - 💬 **Answer questions** in Issues and Discussions
 - 📊 **Provide feedback** on your usage and requirements
+- ☕ **[Buy me a coffee](https://buymeacoffee.com/weekmo)** (one-time donation)
 
 ### Commercial Support
 
@@ -1041,62 +885,38 @@ If your organization uses this project in production and would like:
 - Service Level Agreements (SLAs)
 - Dedicated support
 
-Please contact the maintainers via GitHub Issues with the `[commercial]` tag.
+Please contact the maintainers via GitHub Issues with the `[commercial]` tag or email directly.
 
-### Corporate Sponsorship
+### Current Sponsors
 
-If your company benefits from this project and wants to sponsor development:
+_Thank you to our amazing sponsors!_ 🙏
 
-- **GitHub Sponsors:** Coming soon
-- **Direct contact:** See maintainer email in `pyproject.toml`
-- **Benefits:** Logo in README, priority feature requests, acknowledgment in releases
+<!-- 
+Sponsors will be listed here automatically once GitHub Sponsors is enabled.
+Alternatively, update this section manually:
+
+#### 💎 Enterprise Sponsors
+- [Your Company Logo](https://example.com)
+
+#### 🥇 Organization Sponsors  
+- [Company Name](https://example.com)
+
+#### 🥈 Professional Sponsors
+- [@username](https://github.com/username)
+-->
 
 ### Recognition
 
-All contributors are recognized in:
+All contributors and sponsors are recognized in:
 - Git commit history
 - GitHub contributors page
 - Release notes (for significant contributions)
+- This README (for sponsors)
 
-**Thank you to all contributors!** 🙏
-
----
-
-## Changelog
-
-### v0.2.0 (2026-01-12)
-
-**Added:**
-- Radix tree implementation (20,928x speedup)
-- LRU caching (10,000 entries)
-- Prometheus metrics integration
-- Thread safety with RLock
-- Comprehensive test suite (29 tests)
-- Enhanced API documentation
-- Type hints throughout codebase
-- Health check endpoint
-
-**Fixed:**
-- matchd parameter bug (was hardcoded to "orlonger")
-- Thread safety issues with concurrent DataFrame access
-- Polars API compatibility issues
-- Missing validation for metric ranges
-- Error handling for invalid IPs
-
-**Changed:**
-- Migrated from pandas to polars for better performance
-- Updated to use pyproject.toml instead of requirements.txt
-- Migrated build system from Docker to Podman
-- Enhanced logging throughout service
+**Interested in corporate sponsorship?** Contact us via:
+- Email: See maintainer contact in `pyproject.toml`
+- GitHub: Open an issue with `[sponsorship]` tag
 
 ---
 
-## Support
-
-For issues and questions, please open a GitHub issue.
-
----
-
-## License
-
-GPL-3.0-or-later
+_This project is licensed under GPL-3.0-or-later. Sponsorship is completely optional and does not affect access to the project._
