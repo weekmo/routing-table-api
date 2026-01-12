@@ -89,7 +89,10 @@ clean:
 	find . -type d -name ".mypy_cache" -exec rm -rf {} + 2>/dev/null || true
 	find . -type d -name "htmlcov" -exec rm -rf {} + 2>/dev/null || true
 	find . -type f -name ".coverage" -exec rm -f {} + 2>/dev/null || true
+	find . -type f -name ".coverage.*" -exec rm -f {} + 2>/dev/null || true
 	find . -type f -name "coverage.xml" -exec rm -f {} + 2>/dev/null || true
+	find . -type f -name "coverage-badge.svg" -exec rm -f {} + 2>/dev/null || true
+	find . -type f -name "*.cover" -exec rm -f {} + 2>/dev/null || true
 
 # Multi-stage Podman build targets
 build-runtime:
