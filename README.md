@@ -793,13 +793,226 @@ GPL-3.0-or-later
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Run tests (`make test`)
-4. Run linter (`make lint`)
-5. Commit changes (`git commit -m 'Add amazing feature'`)
-6. Push to branch (`git push origin feature/amazing-feature`)
-7. Open a Pull Request
+We welcome contributions! Please follow these guidelines to ensure a smooth collaboration process.
+
+### Development Setup
+
+1. **Fork and clone the repository:**
+   ```bash
+   git clone https://github.com/yourusername/routing-table-api.git
+   cd routing-table-api
+   ```
+
+2. **Create a virtual environment:**
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   ```
+
+3. **Install dependencies:**
+   ```bash
+   make install
+   # Or manually: pip install -e ".[dev]"
+   ```
+
+4. **Verify installation:**
+   ```bash
+   make test
+   # Should see: 34 tests passing
+   ```
+
+### Development Workflow
+
+1. **Create a feature branch:**
+   ```bash
+   git checkout -b feature/your-feature-name
+   # Or for bug fixes: git checkout -b fix/bug-description
+   ```
+
+2. **Make your changes and test thoroughly:**
+   ```bash
+   # Run tests
+   make test
+   
+   # Run linter
+   make lint
+   
+   # Format code
+   make format
+   
+   # Type checking
+   make type-check
+   
+   # Test locally with Podman
+   make compose-up
+   curl http://localhost:5000/health
+   make compose-down
+   ```
+
+3. **Commit your changes:**
+   ```bash
+   git add .
+   git commit -m "feat: Add your feature description"
+   ```
+   
+   **Commit message conventions:**
+   - `feat:` New feature
+   - `fix:` Bug fix
+   - `docs:` Documentation changes only
+   - `refactor:` Code refactoring without behavior changes
+   - `test:` Adding or updating tests
+   - `chore:` Build process, tooling, dependencies
+   - `perf:` Performance improvements
+
+4. **Push and open a Pull Request:**
+   ```bash
+   git push origin feature/your-feature-name
+   ```
+   Then open a PR on GitHub with a clear description of your changes.
+
+### Code Style Guidelines
+
+- **Python Style:** Follow PEP 8 (enforced by `ruff`)
+- **Imports:** Organize and sort automatically with `make format`
+- **Type Hints:** Required for all public functions and methods
+- **Docstrings:** Use Google-style docstrings for public APIs
+  ```python
+  def lookup_route(ip: str) -> tuple[str, str]:
+      """Perform longest prefix match lookup.
+      
+      Args:
+          ip: IP address to lookup (e.g., "192.168.1.1")
+          
+      Returns:
+          Tuple of (prefix, next_hop)
+          
+      Raises:
+          ValueError: If IP address is invalid
+      """
+  ```
+- **Line Length:** Maximum 100 characters
+- **Naming:** Use `snake_case` for functions/variables, `PascalCase` for classes
+
+### Testing Requirements
+
+- **All features must include tests:** Add unit tests for new functionality
+- **Maintain coverage:** Don't decrease overall test coverage
+- **All tests must pass:** Run `make test` before submitting PR
+- **Test categories:**
+  - Unit tests: `tests/test_lpm.py` - Algorithm correctness
+  - Concurrency tests: `tests/test_concurrency.py` - Thread safety
+  - Integration tests: `tests/test_service.py` - API endpoints
+
+### Pull Request Guidelines
+
+**Before submitting:**
+- [ ] Tests pass (`make test` shows 34/34 passing)
+- [ ] Linter passes (`make lint` has no errors)
+- [ ] Type checking passes (`make type-check`)
+- [ ] Code is formatted (`make format`)
+- [ ] README updated if API changed
+- [ ] Changelog updated for user-facing changes
+
+**PR Title:** Clear and descriptive (e.g., "Add IPv6 support to radix tree")
+
+**PR Description should include:**
+- **What:** Brief summary of changes
+- **Why:** Motivation and context
+- **How:** High-level approach (if complex)
+- **Testing:** How you tested the changes
+- **Breaking Changes:** List any breaking changes (if applicable)
+
+### Code Review Process
+
+1. **Automated checks** must pass (tests, linting, type checking)
+2. **At least one maintainer approval** required before merge
+3. **Address review comments** promptly and professionally
+4. **Squash commits** if requested to maintain clean history
+5. **Update PR** if main branch changes significantly
+
+### Reporting Issues
+
+When reporting bugs, please include:
+
+- **Python version:** Output of `python --version`
+- **OS and version:** e.g., "Ubuntu 22.04", "macOS 14.1"
+- **Installation method:** pip, Podman, Kubernetes, etc.
+- **Steps to reproduce:** Minimal example that demonstrates the issue
+- **Expected behavior:** What you expected to happen
+- **Actual behavior:** What actually happened
+- **Error messages:** Full traceback and logs
+- **routes.txt info:** Number of routes, file size (if relevant)
+
+### Feature Requests
+
+For feature requests, please describe:
+- **Use case:** What problem does this solve?
+- **Proposed solution:** How would you like it to work?
+- **Alternatives considered:** Other approaches you've thought about
+- **Willing to contribute:** Can you implement it yourself?
+
+### Getting Help
+
+- **Questions:** Open a GitHub Discussion (preferred) or Issue
+- **Bugs:** Open a GitHub Issue with details above
+- **Security Issues:** Email maintainers privately (see pyproject.toml)
+- **Real-time chat:** Check if project has Discord/Slack (TBD)
+
+### Code of Conduct
+
+- Be respectful and inclusive
+- Welcome newcomers and help them get started
+- Focus on constructive feedback
+- Assume good intentions
+- Follow GitHub's Community Guidelines
+
+---
+
+## Sponsor
+
+This project is currently maintained by volunteers and does not require financial sponsorship at this time.
+
+### How You Can Support
+
+If you find this project useful, here are ways to help:
+
+- ⭐ **Star the repository** on GitHub to increase visibility
+- 🐛 **Report bugs** and help improve stability
+- 📝 **Improve documentation** - fix typos, add examples, clarify instructions
+- 🔧 **Submit pull requests** - implement features or fix bugs
+- 📢 **Share with others** who might benefit from this project
+- 💬 **Answer questions** in Issues and Discussions
+- 📊 **Provide feedback** on your usage and requirements
+
+### Commercial Support
+
+**For companies using this in production:**
+
+If your organization uses this project in production and would like:
+- Custom features or integrations
+- Priority bug fixes
+- Consulting or training
+- Service Level Agreements (SLAs)
+- Dedicated support
+
+Please contact the maintainers via GitHub Issues with the `[commercial]` tag.
+
+### Corporate Sponsorship
+
+If your company benefits from this project and wants to sponsor development:
+
+- **GitHub Sponsors:** Coming soon
+- **Direct contact:** See maintainer email in `pyproject.toml`
+- **Benefits:** Logo in README, priority feature requests, acknowledgment in releases
+
+### Recognition
+
+All contributors are recognized in:
+- Git commit history
+- GitHub contributors page
+- Release notes (for significant contributions)
+
+**Thank you to all contributors!** 🙏
 
 ---
 
