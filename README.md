@@ -1,7 +1,7 @@
 # Routing Table API
 
 ![Tests](https://github.com/weekmo/routing-table-api/actions/workflows/ci.yml/badge.svg)
-![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/weekmo/GIST_ID/raw/coverage-badge.json)
+![Coverage](./coverage-badge.svg)
 ![Python](https://img.shields.io/badge/python-3.8%2B-blue)
 ![License](https://img.shields.io/badge/license-GPL--3.0-blue)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.128%2B-009688)
@@ -328,7 +328,7 @@ git commit -m "feat: add amazing feature"
 
 ---
 
-## � Releases
+## 📦 Releases
 
 ### Latest Release: v0.2.0
 
@@ -341,31 +341,69 @@ git commit -m "feat: add amazing feature"
 - 📊 Prometheus metrics integration
 - 🌐 Full IPv4 and IPv6 support
 - 🧪 Comprehensive test suite (29 tests, 39% coverage)
-- 🤖 CI/CD pipeline with automated testing
+- 🤖 CI/CD pipeline with automated testing and security scans
+- 📦 Automated package distribution and container registry publishing
 
-### Download
+### Download & Install
 
-**Docker/Podman:**
+**Container Images (Recommended):**
 ```bash
+# Pull from GitHub Container Registry
 podman pull ghcr.io/weekmo/routing-table-api:latest
 podman pull ghcr.io/weekmo/routing-table-api:v0.2.0
+
+# Run container
+podman run -d -p 5000:5000 -v ./routes.txt:/app/routes.txt ghcr.io/weekmo/routing-table-api:latest
 ```
 
-**Source:**
+**Python Package (GitHub Releases):**
 ```bash
+# Download from releases page
+wget https://github.com/weekmo/routing-table-api/releases/download/v0.2.0/routing_table_api-0.2.0-py3-none-any.whl
+pip install routing_table_api-0.2.0-py3-none-any.whl
+
+# Or install from source
+pip install git+https://github.com/weekmo/routing-table-api.git@v0.2.0
+```
+
+**Source Code:**
+```bash
+# Clone specific release
 git clone --branch v0.2.0 https://github.com/weekmo/routing-table-api.git
+cd routing-table-api
+make install
 ```
 
-**PyPI (Coming Soon):**
+### Release Assets
+
+Each release includes:
+- 📦 **Python wheel** (`.whl`) - Universal Python 3 package
+- 📄 **Source distribution** (`.tar.gz`) - Complete source code
+- 🐳 **Docker images** - Multi-arch containers on ghcr.io
+- 📝 **Release notes** - What's new and breaking changes
+
+### Automated Release Process
+
+Releases are automatically created via GitHub Actions:
+
+1. **Tag pushed** (`v*.*.*`) triggers the release workflow
+2. **Tests run** - Ensures all 29 tests pass
+3. **Packages built** - Creates wheel and source distribution
+4. **GitHub Release created** - With release notes and artifacts
+5. **Docker images pushed** - To GitHub Container Registry (ghcr.io)
+6. **Tags applied** - Both version tag and `latest`
+
+**To create a release:** Push a semantic version tag:
 ```bash
-pip install routing-table-api
+git tag -a v0.3.0 -m "Release v0.3.0"
+git push origin v0.3.0
 ```
 
 ### Release Notes
 
 **All Releases:** [GitHub Releases](https://github.com/weekmo/routing-table-api/releases)
 
-**Changelog:** See [CHANGELOG.md](CHANGELOG.md) for detailed version history
+**Container Registry:** [GitHub Packages](https://github.com/weekmo/routing-table-api/pkgs/container/routing-table-api)
 
 ### Versioning
 
@@ -380,7 +418,7 @@ This project follows [Semantic Versioning](https://semver.org/):
 
 ---
 
-## �💖 Sponsor
+## 💖 Sponsor
 
 [![Sponsor on GitHub](https://img.shields.io/badge/Sponsor-❤️_on_GitHub-ff69b4?logo=github)](https://github.com/sponsors/weekmo)
 
