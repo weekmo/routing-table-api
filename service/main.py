@@ -447,5 +447,16 @@ async def update_match(prefix: str, nh: str, metric: int, matchd: str) -> Metric
     logger.info(f"Updated {updated_count} routes ({matchd}): {prefix} via {nh} metric={metric}")
     return MetricUpdateResponse(status="success", updated_routes=updated_count)
 
+
+def main():
+    """Entry point for running the service."""
+    uvicorn.run(
+        "service.main:app",
+        host=settings.host,
+        port=settings.port,
+        workers=settings.proc_num
+    )
+
+
 if __name__ == "__main__":
-    uvicorn.run(app, port=settings.port, host=settings.host)
+    main()
