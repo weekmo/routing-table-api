@@ -138,13 +138,36 @@ def lpm_update(df, prefix_ip, nh, metric, matchd="orlonger"):
               .alias('metric')
         )
     else:
-        # orlonger match: get all matching prefixes
-        lpm_result = lpm_map(df, prefix_ip)
-        mask = (pl.col('next_hop') == nh) & (pl.col('prefixlen') != 0)
-        next_hop_df = lpm_result.filter(mask)
+        # orlonger match: find all routes that are subnets of prefix_ip or exact match
+        # A route is a subnet if: same version AND prefix is within the given prefix
+        prefix_int = int(prefix_ip.network_address)
+        prefix_len = prefix_ip.prefixlen
+        version = prefix_ip.version
         
-        # Create a set of matching prefixes for efficient lookup
-        matching_prefixes = set(next_hop_df['prefix'].to_list()) if len(next_hop_df) > 0 else set()
+        # Filter for routes with same version, matching next_hop, and are subnets
+        # A subnet has: prefixlen >= our prefix AND the network bits match
+        def is_subnet_of_prefix(route_prefix_str: str) -> bool:
+            try:
+                route_net = ipaddress.ip_network(route_prefix_str)
+                # Must be same version and route must be more specific or equal
+                if route_net.version != version or route_net.prefixlen < prefix_len:
+                    return False
+                # Check if route's network address falls within our prefix
+                return route_net.subnet_of(prefix_ip)
+            except:
+                return False
+        
+        # Find all matching routes
+        mask = (pl.col('next_hop') == nh) & (pl.col('v') == version)
+        candidate_routes = df.filter(mask)
+        
+        # Filter to only subnets using the prefix check
+        matching_prefixes = set()
+        for route_prefix in candidate_routes['prefix'].to_list():
+            if is_subnet_of_prefix(route_prefix):
+                matching_prefixes.add(route_prefix)
+        
+        next_hop_df = candidate_routes.filter(pl.col('prefix').is_in(matching_prefixes)) if matching_prefixes else pl.DataFrame()
         
         # Update metric for matching rows
         if matching_prefixes:
