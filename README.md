@@ -353,9 +353,12 @@ routing-table-api/
 │   └── test_service.py      # Integration tests
 ├── routes.txt               # Routing table (1M+ routes)
 ├── pyproject.toml           # Project configuration
-├── docker-compose.yml       # Docker Compose config
-├── Dockerfile-service       # Service container
+├── docker-compose.yml       # Podman Compose config
+├── Dockerfile               # Multi-stage container build
 ├── makefile                 # Build automation
+├── kubernetes-test.yaml     # Kubernetes deployment
+├── podman-pod.yaml          # Podman pod configuration
+├── podman-systemd/          # Systemd service files
 └── README.md                # This file
 ```
 
