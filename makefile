@@ -3,11 +3,11 @@
 # Default target
 help:
 	@echo "Available targets:"
-	@echo "  make build        - Build Docker image"
+	@echo "  make build        - Build Podman image"
 	@echo "  make run          - Run container (production mode)"
 	@echo "  make runv         - Run container with volume mount"
 	@echo "  make remove       - Stop and remove container"
-	@echo "  make removeimg    - Remove Docker image"
+	@echo "  make removeimg    - Remove Podman image"
 	@echo "  make devrun       - Run service locally with auto-reload"
 	@echo "  make test         - Run all tests with verbose output"
 	@echo "  make lint         - Run ruff linter"
@@ -15,35 +15,38 @@ help:
 	@echo "  make type-check   - Run mypy type checker"
 	@echo "  make clean        - Clean Python cache files"
 	@echo "  make install      - Install package in editable mode with dev dependencies"
-	@echo "  make compose-up   - Start services with docker-compose"
-	@echo "  make compose-down - Stop services with docker-compose"
-	@echo "  make build-runtime- Build production Docker image"
-	@echo "  make build-dev    - Build development Docker image with tests"
-	@echo "  make build-all    - Build all Docker image stages"
-	@echo "  make image-size   - Display Docker image sizes"
+	@echo "  make compose-up   - Start services with podman-compose"
+	@echo "  make compose-down - Stop services with podman-compose"
+	@echo "  make build-runtime- Build production Podman image"
+	@echo "  make build-dev    - Build development Podman image with tests"
+	@echo "  make build-all    - Build all Podman image stages"
+	@echo "  make image-size   - Display Podman image sizes"
+	@echo "  make pod-up       - Start pod with podman play kube"
+	@echo "  make pod-down     - Stop pod"
+	@echo "  make pod-logs     - View pod logs"
 
-# Docker targets (updated to use docker-compose instead of podman)
+# Podman targets
 build:
-	docker build -f Dockerfile-service -t routing-table-api:latest .
+	podman build -t routing-table-api:latest .
 
 compose-up:
-	docker-compose up -d
+	podman-compose up -d
 
 compose-down:
-	docker-compose down
+	podman-compose down
 	
 runv:
-	docker run -dp 5000:5000 --name routing-api -v $(PWD)/routes.txt:/testwork/routes.txt routing-table-api:latest
+	podman run -d -p 5000:5000 --name routing-api -v $(PWD)/routes.txt:/app/routes.txt:ro,Z routing-table-api:latest
 
 run:
-	docker run -dp 5000:5000 --name routing-api routing-table-api:latest
+	podman run -d -p 5000:5000 --name routing-api routing-table-api:latest
 
 remove:
-	docker stop routing-api || true
-	docker rm routing-api || true
+	podman stop routing-api || true
+	podman rm routing-api || true
 
 removeimg:
-	docker rmi -f routing-table-api:latest
+	podman rmi -f routing-table-api:latest
 
 # Development targets
 install:
@@ -72,18 +75,28 @@ clean:
 	find . -type d -name ".ruff_cache" -exec rm -rf {} + 2>/dev/null || true
 	find . -type d -name ".mypy_cache" -exec rm -rf {} + 2>/dev/null || true
 
-# Multi-stage Docker build targets
+# Multi-stage Podman build targets
 build-runtime:
-	docker build --target runtime -t routing-table-api:latest .
+	podman build --target runtime -t routing-table-api:latest .
 
 build-dev:
-	docker build --target development -t routing-table-api:test .
+	podman build --target development -t routing-table-api:test .
 
 build-all:
-	docker build --target builder -t routing-table-api:builder .
-	docker build --target runtime -t routing-table-api:latest .
-	docker build --target development -t routing-table-api:test .
+	podman build --target builder -t routing-table-api:builder .
+	podman build --target runtime -t routing-table-api:latest .
+	podman build --target development -t routing-table-api:test .
 
 image-size:
-	@echo "Docker image sizes:"
-	@docker images routing-table-api --format "table {{.Tag}}\t{{.Size}}\t{{.CreatedAt}}"
+	@echo "Podman image sizes:"
+	@podman images routing-table-api --format "table {{.Tag}}\t{{.Size}}\t{{.CreatedAt}}"
+
+# Podman-specific deployment targets
+pod-up:
+	podman play kube podman-pod.yaml
+
+pod-down:
+	podman play kube --down podman-pod.yaml
+
+pod-logs:
+	podman logs -f routing-table-api-pod-api
