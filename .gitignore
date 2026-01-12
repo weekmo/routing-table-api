@@ -51,7 +51,7 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 cover/
-coverage-badge.svg
+# coverage-badge.svg - Allow this to be committed for README display
 
 # Translations
 *.mo
