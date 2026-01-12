@@ -228,9 +228,9 @@ routing-table-api/
 ├── .github/
 │   ├── workflows/           # CI/CD pipelines
 │   │   ├── ci.yml          # Main CI (tests, linting, security)
-│   │   ├── coverage-badge.yml
 │   │   └── release.yml
 │   ├── FUNDING.yml         # GitHub Sponsors config
+│   ├── dependabot.yml
 │   └── CICD_SETUP.md       # CI/CD documentation
 ├── service/
 │   ├── main.py             # FastAPI application
@@ -247,7 +247,9 @@ routing-table-api/
 ├── routes.txt              # Routing table data (1M+ routes)
 ├── Dockerfile              # Multi-stage container build
 ├── docker-compose.yml      # Compose configuration
-├── kubernetes-test.yaml    # K8s deployment
+├── kubernetes.yaml         # K8s deployment (production / CI-built images)
+├── CHANGELOG.md            # Release notes and history
+├── CONTRIBUTING.md         # Contribution guidelines
 ├── pyproject.toml          # Project configuration
 ├── makefile                # Build automation
 └── README.md               # This file
@@ -353,6 +355,7 @@ Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines
 Release notes, assets, and version history are maintained in `CHANGELOG.md` and GitHub Releases. CI/CD publishes packages and container images to GitHub Container Registry (`ghcr.io/weekmo/routing-table-api`).
 
 For production deployments use pinned image tags (for example `ghcr.io/weekmo/routing-table-api:v1.0.0`) and set `imagePullPolicy` accordingly in `kubernetes.yaml`.
+
 ---
 
 ## 💖 Sponsor
