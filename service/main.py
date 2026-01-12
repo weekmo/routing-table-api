@@ -288,7 +288,7 @@ async def get_nh(prefix: str) -> RouteResponse:
         next_hop_df = lpm_lookup_radix(radix_tree, ip_str)
 
         # Verify dataframe is not empty
-        if next_hop_df.empty:
+        if len(next_hop_df) == 0:
             logger.info(f"No route found for {prefix}")
             error_counter.labels(error_type='no_route').inc()
             lookup_counter.labels(status='not_found').inc()

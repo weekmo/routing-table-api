@@ -3,7 +3,6 @@
 import polars as pl
 import ipaddress
 import sys
-from typing import Optional
 from service.lib.radix_tree import RadixTree
 
 """ Global params """
@@ -120,34 +119,6 @@ def prep_df(df: pl.DataFrame) -> pl.DataFrame:
     
     return result
 
-def lpm_itr(df: pl.DataFrame, ipaddr: ipaddress.IPv4Network) -> pl.DataFrame:
-    """
-    Perform LPM using iteration (legacy method).
-    
-    This is the slower O(n) approach, kept for compatibility.
-    Consider using radix tree lookup instead.
-
-    Parameters
-    ----------
-    df : polars.DataFrame
-        Routing table dataframe
-    ipaddr : ipaddress.ip_network
-        IP address to lookup
-
-    Returns
-    -------
-    polars.DataFrame
-        Filtered dataframe with matching routes
-    """
-    ipad = ipaddr.network_address
-    result_indices = []
-    
-    # Convert to Python list for iteration (slow but works)
-    for idx, row in enumerate(df.iter_rows(named=True)):
-        if (int(row['mask'], 16) & int(ipad) == int(row['addr'], 16) and int(row['v']) == ipad.version):
-            result_indices.append(idx)
-    
-    return df[result_indices] if result_indices else pl.DataFrame()
 
 def lpm_map(df: pl.DataFrame, prefix: ipaddress.IPv4Network) -> pl.DataFrame:
     """
