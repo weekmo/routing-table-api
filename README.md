@@ -1,7 +1,7 @@
 # Routing Table API
 
-![Tests](https://img.shields.io/badge/tests-29%20unit%20%7C%209%20concurrency-success)
-![Coverage](https://img.shields.io/badge/coverage-39.4%25-yellow)
+![Tests](https://github.com/weekmo/routing-table-api/actions/workflows/ci.yml/badge.svg)
+![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/weekmo/GIST_ID/raw/coverage-badge.json)
 ![Python](https://img.shields.io/badge/python-3.8%2B-blue)
 ![License](https://img.shields.io/badge/license-GPL--3.0-blue)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.128%2B-009688)
@@ -45,6 +45,7 @@ Routing table lookup service implementing Longest Prefix Match (LPM) using a rad
 - Prometheus metrics export
 - IPv4 and IPv6 support
 - 29 unit tests with 39% code coverage (20 unit + 9 concurrency)
+- **Automated CI/CD** with GitHub Actions (multi-version testing, coverage tracking, security scans)
 
 ## Quick Start
 
@@ -342,6 +343,13 @@ make clean
 
 ```
 routing-table-api/
+├── .github/
+│   ├── workflows/           # GitHub Actions CI/CD
+│   │   ├── ci.yml          # Main CI pipeline
+│   │   ├── coverage-badge.yml # Coverage tracking
+│   │   └── release.yml     # Release automation
+│   ├── dependabot.yml      # Dependency updates
+│   └── CICD_SETUP.md       # CI/CD documentation
 ├── service/
 │   ├── __init__.py
 │   ├── main.py              # FastAPI application
@@ -366,6 +374,25 @@ routing-table-api/
 ├── podman-systemd/          # Systemd service files
 └── README.md                # This file
 ```
+
+### CI/CD Pipeline
+
+The project includes a comprehensive GitHub Actions pipeline:
+
+**Automated Checks on Every Push/PR:**
+- ✅ Tests on Python 3.8, 3.9, 3.10, 3.11, 3.12
+- ✅ Code quality (ruff linting, formatting, mypy type checking)
+- ✅ Security scanning (Safety, Bandit)
+- ✅ Container build validation
+- ✅ Coverage tracking and badge updates
+
+**Setup Instructions:**
+See [.github/CICD_SETUP.md](.github/CICD_SETUP.md) for complete CI/CD configuration guide.
+
+**Badge Configuration:**
+- Tests badge updates automatically with workflow status
+- Coverage badge requires one-time setup (Codecov or GitHub Gist)
+- See CI/CD setup guide for detailed instructions
 
 ---
 
