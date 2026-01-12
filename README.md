@@ -326,8 +326,6 @@ git commit -m "feat: add amazing feature"
 - `chore:` Build/tooling
 - `perf:` Performance improvement
 
-**See full guide:** [Contributing](.github/CONTRIBUTING.md) (if exists)
-
 ---
 
 ## 💖 Sponsor
@@ -359,7 +357,6 @@ For production deployments requiring:
 
 **Contact:** Open GitHub issue with `[commercial]` tag
 
-**See setup guide:** [SPONSORSHIP_SETUP.md](SPONSORSHIP_SETUP.md)
 
 ---
 
@@ -376,7 +373,6 @@ This project is open source and free to use. Sponsorship is optional and does no
 - **API Documentation:** http://localhost:5000/docs (Swagger)
 - **Alternative Docs:** http://localhost:5000/redoc
 - **CI/CD Setup:** [.github/CICD_SETUP.md](.github/CICD_SETUP.md)
-- **Sponsorship Guide:** [SPONSORSHIP_SETUP.md](SPONSORSHIP_SETUP.md)
 - **Issues & Bugs:** [GitHub Issues](https://github.com/weekmo/routing-table-api/issues)
 
 ---
