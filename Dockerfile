@@ -11,7 +11,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy and build dependencies
-COPY pyproject.toml ./
+COPY pyproject.toml README.md ./
 RUN pip install --no-cache-dir -U pip setuptools wheel && \
     pip wheel --no-cache-dir --wheel-dir /build/wheels -e .
 

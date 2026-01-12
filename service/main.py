@@ -59,7 +59,9 @@ def cached_radix_lookup(ip_str: str) -> tuple:
     cache_misses.inc()
     result = radix_tree.lookup(ip_str)
     if result:
-        return (result['prefix'], result['next_hop'], result['metric'])
+        # lookup returns a list of RouteInfo objects, get the first (best) match
+        best = result[0]
+        return (best.prefix, best.next_hop, best.metric)
     return None
 
 def get_cached_route(ip_str: str) -> Dict[str, Any]:
