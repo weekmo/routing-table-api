@@ -1,0 +1,184 @@
+---
+# ConfigMap for routes data
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: routing-table-data
+  namespace: default
+data:
+  # In production, use a PersistentVolume or external storage
+  # For testing, routes.txt would be mounted from host or built into image
+---
+# Deployment for the Routing Table API
+apiVersion: apps/v1
+---
+# NOTE: This manifest is an example. CI/CD publishes images to
+# `ghcr.io/weekmo/routing-table-api`. For production, pin image tags
+---
+# NOTE: This manifest is an example. CI/CD publishes images to
+# `ghcr.io/weekmo/routing-table-api`. For production, pin image tags
+# (for example `ghcr.io/weekmo/routing-table-api:v1.0.0`) and set
+# `imagePullPolicy` accordingly.
+
+# ConfigMap for routes data (not used for large datasets)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: routing-table-data
+  namespace: default
+data:
+  # Do not store very large files here. Use a PVC or external storage for routes.txt.
+  example: |
+    # small example dataset
+    192.0.2.0/24,198.51.100.1,10
+
+---
+# Deployment for the Routing Table API
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: routing-table-api
+  namespace: default
+  labels:
+    app: routing-table-api
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 25%
+      maxSurge: 25%
+  selector:
+    matchLabels:
+      app: routing-table-api
+  template:
+    metadata:
+      labels:
+        app: routing-table-api
+    spec:
+      containers:
+      - name: api
+        image: ghcr.io/weekmo/routing-table-api:{{IMAGE_TAG}} # Replace with pinned tag (e.g. v0.2.0)
+        imagePullPolicy: IfNotPresent # Use `Always` for `:latest`
+        ports:
+        - containerPort: 5000
+          name: http
+          protocol: TCP
+        volumeMounts:
+        - name: routes-data
+          mountPath: /app/routes.txt
+          subPath: routes.txt
+          readOnly: true
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "2000m"
+        env:
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        - name: PROC_NUM
+          value: "4"
+        - name: HOST
+          value: "0.0.0.0"
+        - name: PORT
+          value: "5000"
+      volumes:
+      - name: routes-data
+        persistentVolumeClaim:
+          claimName: routes-pvc # Create a PVC named `routes-pvc` or update to your claim
+
+---
+# Service to expose the API
+apiVersion: v1
+kind: Service
+metadata:
+  name: routing-table-api
+  namespace: default
+  labels:
+    app: routing-table-api
+spec:
+  type: ClusterIP
+  ports:
+  - port: 5000
+    targetPort: 5000
+    protocol: TCP
+    name: http
+  selector:
+    app: routing-table-api
+
+---
+# Job for running tests
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: routing-table-api-tests
+  namespace: default
+  labels:
+    app: routing-table-api-tests
+spec:
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        app: routing-table-api-tests
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: tests
+        image: ghcr.io/weekmo/routing-table-api:test
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: API_URL
+          value: "http://routing-table-api:5000"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+      initContainers:
+      - name: wait-for-api
+        image: busybox:1.36
+        command:
+        - sh
+        - -c
+        - |
+          until wget -q --spider http://routing-table-api:5000/health; do
+            echo "Waiting for API to be ready..."
+            sleep 5
+          done
+          echo "API is ready!"
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: routes-pvc
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: standard

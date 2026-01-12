@@ -126,7 +126,9 @@ systemctl --user enable --now routing-table-api.service
 ### Production Cluster (Kubernetes)
 
 ```bash
-kubectl apply -f kubernetes-test.yaml
+# For testing manifests use `kubernetes-test.yaml`.
+# For CI-built, production-ready images use `kubernetes-deploy.yaml` (pinned tags):
+kubectl apply -f kubernetes-deploy.yaml
 ```
 
 **What's included:**
@@ -153,9 +155,10 @@ kubectl apply -f kubernetes-test.yaml
 **Deployment:**
 
 ```bash
-# Update the hostPath in kubernetes-test.yaml to your routes.txt location
-# Then apply:
-kubectl apply -f kubernetes-test.yaml
+# Update the hostPath in `kubernetes-deploy.yaml` to your `routes.txt` location or
+# provision a PersistentVolume and PersistentVolumeClaim (`routes-pvc`).
+# Then apply (use pinned IMAGE_TAG for production):
+kubectl apply -f kubernetes-deploy.yaml
 
 # Check status
 kubectl get pods -l app=routing-table-api
@@ -345,94 +348,11 @@ Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines
 
 ---
 
-## 📦 Releases
+## 📦 Releases & Changelog
 
-### Latest Release: v0.2.0
+Release notes, assets, and version history are maintained in `CHANGELOG.md` and GitHub Releases. CI/CD publishes packages and container images to GitHub Container Registry (`ghcr.io/weekmo/routing-table-api`).
 
-**Release Date:** January 2026
-
-**What's New:**
-- ✨ Radix tree implementation with O(k) lookup complexity
-- ⚡ LRU caching for sub-5μs cached lookups
-- 🔒 Thread-safe concurrent operations
-- 📊 Prometheus metrics integration
-- 🌐 Full IPv4 and IPv6 support
-- 🧪 Comprehensive test suite (29 tests, 39% coverage)
-- 🤖 CI/CD pipeline with automated testing and security scans
-- 📦 Automated package distribution and container registry publishing
-
-### Download & Install
-
-**Container Images (Recommended):**
-```bash
-# Pull from GitHub Container Registry
-podman pull ghcr.io/weekmo/routing-table-api:latest
-podman pull ghcr.io/weekmo/routing-table-api:v0.2.0
-
-# Run container
-podman run -d -p 5000:5000 -v ./routes.txt:/app/routes.txt ghcr.io/weekmo/routing-table-api:latest
-```
-
-**Python Package (GitHub Releases):**
-```bash
-# Download from releases page
-wget https://github.com/weekmo/routing-table-api/releases/download/v0.2.0/routing_table_api-0.2.0-py3-none-any.whl
-pip install routing_table_api-0.2.0-py3-none-any.whl
-
-# Or install from source
-pip install git+https://github.com/weekmo/routing-table-api.git@v0.2.0
-```
-
-**Source Code:**
-```bash
-# Clone specific release
-git clone --branch v0.2.0 https://github.com/weekmo/routing-table-api.git
-cd routing-table-api
-make install
-```
-
-### Release Assets
-
-Each release includes:
-- 📦 **Python wheel** (`.whl`) - Universal Python 3 package
-- 📄 **Source distribution** (`.tar.gz`) - Complete source code
-- 🐳 **Docker images** - Multi-arch containers on ghcr.io
-- 📝 **Release notes** - What's new and breaking changes
-
-### Automated Release Process
-
-Releases are automatically created via GitHub Actions:
-
-1. **Tag pushed** (`v*.*.*`) triggers the release workflow
-2. **Tests run** - Ensures all 29 tests pass
-3. **Packages built** - Creates wheel and source distribution
-4. **GitHub Release created** - With release notes and artifacts
-5. **Docker images pushed** - To GitHub Container Registry (ghcr.io)
-6. **Tags applied** - Both version tag and `latest`
-
-**To create a release:** Push a semantic version tag:
-```bash
-git tag -a v0.3.0 -m "Release v0.3.0"
-git push origin v0.3.0
-```
-
-### Release Notes
-
-**All Releases:** [GitHub Releases](https://github.com/weekmo/routing-table-api/releases)
-
-**Container Registry:** [GitHub Packages](https://github.com/weekmo/routing-table-api/pkgs/container/routing-table-api)
-
-### Versioning
-
-This project follows [Semantic Versioning](https://semver.org/):
-
-- **MAJOR** version: Breaking API changes
-- **MINOR** version: New features (backward compatible)
-- **PATCH** version: Bug fixes (backward compatible)
-
-**Current:** `0.2.0` (Beta - API may change)  
-**Stable:** `1.0.0` (Coming Q2 2026)
-
+For production deployments use pinned image tags (for example `ghcr.io/weekmo/routing-table-api:v1.0.0`) and set `imagePullPolicy` accordingly in `kubernetes.yaml`.
 ---
 
 ## 💖 Sponsor
