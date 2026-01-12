@@ -1,0 +1,53 @@
+[Unit]
+Description=Routing Table API Service
+Documentation=https://github.com/yourorg/routing-table-api
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=exec
+Restart=on-failure
+RestartSec=10
+TimeoutStartSec=90
+TimeoutStopSec=30
+
+# Environment
+Environment=PODMAN_SYSTEMD_UNIT=%n
+Environment=ROUTES_FILE=/path/to/routing-table-api/routes.txt
+
+# Pre-start: Pull/build image if needed
+ExecStartPre=-/usr/bin/podman pull localhost/routing-table-api:latest
+
+# Start container
+ExecStart=/usr/bin/podman run \
+    --name routing-table-api \
+    --rm \
+    --sdnotify=conmon \
+    --cgroups=no-conmon \
+    --publish 5000:5000 \
+    --volume ${ROUTES_FILE}:/app/routes.txt:ro,Z \
+    --env PYTHONUNBUFFERED=1 \
+    --env PROC_NUM=4 \
+    --health-cmd "python -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:5000/health\")'" \
+    --health-interval 30s \
+    --health-timeout 10s \
+    --health-retries 3 \
+    --health-start-period 20s \
+    localhost/routing-table-api:latest
+
+# Stop container
+ExecStop=/usr/bin/podman stop --time 10 routing-table-api
+
+# Cleanup on stop
+ExecStopPost=-/usr/bin/podman rm --force routing-table-api
+
+# Resource limits
+MemoryMax=2G
+CPUQuota=200%
+
+# Security
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,76 @@
+# Podman Pod Configuration (alternative to docker-compose)
+# This uses Podman's native pod concept (similar to Kubernetes pods)
+# Run with: podman play kube podman-pod.yaml
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: routing-table-api-pod
+  labels:
+    app: routing-table-api
+spec:
+  containers:
+  # API Service Container
+  - name: api
+    image: localhost/routing-table-api:latest
+    ports:
+    - containerPort: 5000
+      hostPort: 5000
+      protocol: TCP
+    volumeMounts:
+    - name: routes-data
+      mountPath: /app/routes.txt
+      readOnly: true
+    env:
+    - name: PYTHONUNBUFFERED
+      value: "1"
+    - name: PROC_NUM
+      value: "4"
+    - name: HOST
+      value: "0.0.0.0"
+    - name: PORT
+      value: "5000"
+    resources:
+      limits:
+        memory: 2Gi
+        cpu: "2"
+      requests:
+        memory: 512Mi
+        cpu: "0.5"
+    livenessProbe:
+      httpGet:
+        path: /health
+        port: 5000
+      initialDelaySeconds: 30
+      periodSeconds: 30
+      timeoutSeconds: 10
+    readinessProbe:
+      httpGet:
+        path: /health
+        port: 5000
+      initialDelaySeconds: 20
+      periodSeconds: 10
+  
+  # Test Runner Container (runs tests and exits)
+  - name: tests
+    image: localhost/routing-table-api:test
+    env:
+    - name: API_URL
+      value: "http://localhost:5000"
+    resources:
+      limits:
+        memory: 512Mi
+        cpu: "1"
+      requests:
+        memory: 256Mi
+        cpu: "0.25"
+    # Tests container will exit after completion
+    # Pod will remain running if api container is still active
+  
+  volumes:
+  - name: routes-data
+    hostPath:
+      path: ./routes.txt
+      type: File
+
+  restartPolicy: OnFailure

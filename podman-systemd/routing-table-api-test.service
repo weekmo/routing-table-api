@@ -1,0 +1,37 @@
+[Unit]
+Description=Routing Table API Test Runner
+Documentation=https://github.com/yourorg/routing-table-api
+After=routing-table-api.service
+Requires=routing-table-api.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=no
+
+# Environment
+Environment=PODMAN_SYSTEMD_UNIT=%n
+
+# Wait for API to be healthy before running tests
+ExecStartPre=/bin/sh -c 'timeout 60 sh -c "until podman healthcheck run routing-table-api; do sleep 2; done"'
+
+# Run tests
+ExecStart=/usr/bin/podman run \
+    --name routing-table-api-tests \
+    --rm \
+    --network container:routing-table-api \
+    --env API_URL=http://localhost:5000 \
+    localhost/routing-table-api:test
+
+# Cleanup on failure
+ExecStopPost=-/usr/bin/podman rm --force routing-table-api-tests
+
+# Resource limits
+MemoryMax=512M
+CPUQuota=100%
+
+# Security
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
