@@ -1,3 +1,23 @@
+"""FastAPI service for high-performance routing table lookups.
+
+This module implements a RESTful API for routing table lookups using the
+Longest Prefix Match (LPM) algorithm. It provides:
+
+- O(prefix_length) lookup complexity using radix tree
+- LRU caching for frequent lookups
+- Thread-safe metric updates
+- Prometheus metrics for monitoring
+- Health check endpoint
+
+The service loads routing data from a CSV file at startup and maintains
+both a Polars DataFrame and a radix tree for efficient lookups.
+
+Typical usage:
+    GET  /destination/{ip}                    - Lookup route for IP
+    PUT  /prefix/{prefix}/nh/{nh}/metric/{m}  - Update route metrics
+    GET  /health                               - Health check
+    GET  /metrics                              - Prometheus metrics
+"""
 from fastapi import FastAPI, HTTPException
 import uvicorn
 import ipaddress
@@ -193,7 +213,10 @@ def lpm_update(df, prefix_ip, nh, metric, matchd="orlonger"):
 @app.get("/", include_in_schema=False)
 async def root():
     """
-    Redirect to interactive API documentation.
+    Root endpoint - redirects to interactive API documentation.
+    
+    Returns:
+        RedirectResponse to /docs (Swagger UI)
     """
     return RedirectResponse(url='/docs')
 
@@ -201,6 +224,18 @@ async def root():
 async def metrics():
     """
     Prometheus metrics endpoint.
+    
+    Exposes operational metrics including:
+    - routing_lookups_total: Total number of lookups by status
+    - routing_lookup_latency_seconds: Lookup latency histogram
+    - routing_updates_total: Total route updates by type/status
+    - routing_cache_hits_total: Cache hit counter
+    - routing_cache_misses_total: Cache miss counter
+    - routing_table_routes: Current route count
+    - routing_errors_total: Error counter by type
+    
+    Returns:
+        Prometheus-formatted metrics in text/plain format
     """
     return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
@@ -504,7 +539,21 @@ async def update_match(prefix: str, nh: str, metric: int, matchd: str) -> Metric
 
 
 def main():
-    """Entry point for running the service."""
+    """
+    Entry point for running the service via command line.
+    
+    Starts the uvicorn server with configuration from settings.
+    Server parameters (host, port, workers) are loaded from environment
+    variables or use defaults from service.config.
+    
+    Usage:
+        python -m service.main
+        
+    Environment Variables:
+        SERVICE_HOST: Listen address (default: 0.0.0.0)
+        SERVICE_PORT: Listen port (default: 5000)
+        PROC_NUM: Number of worker processes (default: 4)
+    """
     uvicorn.run(
         "service.main:app",
         host=settings.host,

@@ -1,6 +1,7 @@
 # Routing Table API
 
-![Tests](https://img.shields.io/badge/tests-34%20passing-success)
+![Tests](https://img.shields.io/badge/tests-29%20unit%20%7C%209%20concurrency-success)
+![Coverage](https://img.shields.io/badge/coverage-39.4%25-yellow)
 ![Python](https://img.shields.io/badge/python-3.8%2B-blue)
 ![License](https://img.shields.io/badge/license-GPL--3.0-blue)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.128%2B-009688)
@@ -43,7 +44,7 @@ Routing table lookup service implementing Longest Prefix Match (LPM) using a rad
 - Thread-safe concurrent operations
 - Prometheus metrics export
 - IPv4 and IPv6 support
-- 34 comprehensive tests (20 unit, 9 concurrency, 5 integration)
+- 29 unit tests with 39% code coverage (20 unit + 9 concurrency)
 
 ## Quick Start
 
@@ -301,21 +302,25 @@ routing_cache_hits_total 12543.0
 ### Running Tests
 
 ```bash
-# Run all tests
+# Run all unit tests (excluding integration tests)
 make test
 
 # Run specific test files
 pytest tests/test_lpm.py -v
 pytest tests/test_concurrency.py -v
 
-# Run with coverage
-pytest tests/ --cov=service --cov-report=html
+# Run with coverage report
+make test-cov
+
+# Open HTML coverage report in browser
+make coverage-report
 ```
 
-**Test coverage (34 total):**
+**Test coverage (29 unit + concurrency tests):**
 - 20 unit tests (LPM algorithm correctness in test_lpm.py)
 - 9 concurrency tests (thread safety in test_concurrency.py)
-- 5 integration tests (API endpoints in test_service.py)
+- **Current coverage: 39.4%** (service/lib/radix_tree.py: 94%, service/lib/models.py: 73%)
+- Integration tests (test_service.py) require running service container
 
 ### Code Quality
 
@@ -837,6 +842,13 @@ We welcome contributions! Please follow these guidelines to ensure a smooth coll
    # Run tests
    make test
    
+   # Run tests with coverage
+   make test-cov
+   
+   # Ensure coverage doesn't decrease (maintain >35%)
+   # View detailed coverage report
+   make coverage-report
+   
    # Run linter
    make lint
    
@@ -899,17 +911,21 @@ We welcome contributions! Please follow these guidelines to ensure a smooth coll
 ### Testing Requirements
 
 - **All features must include tests:** Add unit tests for new functionality
-- **Maintain coverage:** Don't decrease overall test coverage
+- **Maintain coverage:** Don't decrease overall test coverage (maintain >35%)
+  - Run `make test-cov` to check coverage before submitting
+  - Aim for 80%+ coverage on new code
+  - View detailed report with `make coverage-report`
 - **All tests must pass:** Run `make test` before submitting PR
 - **Test categories:**
   - Unit tests: `tests/test_lpm.py` - Algorithm correctness
   - Concurrency tests: `tests/test_concurrency.py` - Thread safety
-  - Integration tests: `tests/test_service.py` - API endpoints
+  - Integration tests: `tests/test_service.py` - API endpoints (requires container)
 
 ### Pull Request Guidelines
 
 **Before submitting:**
-- [ ] Tests pass (`make test` shows 34/34 passing)
+- [ ] Tests pass (`make test` shows 29/29 passing)
+- [ ] Coverage maintained (`make test-cov` shows ≥35%)
 - [ ] Linter passes (`make lint` has no errors)
 - [ ] Type checking passes (`make type-check`)
 - [ ] Code is formatted (`make format`)

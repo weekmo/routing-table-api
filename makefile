@@ -1,4 +1,4 @@
-.PHONY: build run runv remove removeimg devrun test lint format type-check clean help
+.PHONY: build run runv remove removeimg devrun test test-cov coverage-report lint format type-check clean help
 
 # Default target
 help:
@@ -10,6 +10,8 @@ help:
 	@echo "  make removeimg    - Remove Podman image"
 	@echo "  make devrun       - Run service locally with auto-reload"
 	@echo "  make test         - Run all tests with verbose output"
+	@echo "  make test-cov     - Run tests with coverage report"
+	@echo "  make coverage-report - Open HTML coverage report in browser"
 	@echo "  make lint         - Run ruff linter"
 	@echo "  make format       - Format code with ruff"
 	@echo "  make type-check   - Run mypy type checker"
@@ -58,6 +60,17 @@ devrun:
 test:
 	pytest tests/ -v --tb=short
 
+test-cov:
+	pytest tests/test_lpm.py tests/test_concurrency.py --cov=service --cov-report=term-missing --cov-report=html --cov-report=xml -v
+
+coverage-report:
+	@if [ -f htmlcov/index.html ]; then \
+		echo "Opening coverage report in browser..."; \
+		xdg-open htmlcov/index.html 2>/dev/null || open htmlcov/index.html 2>/dev/null || echo "Please open htmlcov/index.html manually"; \
+	else \
+		echo "No coverage report found. Run 'make test-cov' first."; \
+	fi
+
 lint:
 	ruff check service/ tests/
 
@@ -74,6 +87,9 @@ clean:
 	find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
 	find . -type d -name ".ruff_cache" -exec rm -rf {} + 2>/dev/null || true
 	find . -type d -name ".mypy_cache" -exec rm -rf {} + 2>/dev/null || true
+	find . -type d -name "htmlcov" -exec rm -rf {} + 2>/dev/null || true
+	find . -type f -name ".coverage" -exec rm -f {} + 2>/dev/null || true
+	find . -type f -name "coverage.xml" -exec rm -f {} + 2>/dev/null || true
 
 # Multi-stage Podman build targets
 build-runtime:
