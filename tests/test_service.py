@@ -1,6 +1,8 @@
 """Integration tests for the routing table API service."""
-import httpx
+
 from time import sleep
+
+import httpx
 
 HOSTNAME = "testservice"
 PORT = 5000
@@ -10,7 +12,7 @@ API_URL = f"http://{HOSTNAME}:{PORT}"
 def wait_for_service():
     """Wait for service to be ready (routes loading can take time)."""
     # import of routes at service startup is expected to take a while
-    for i in range(100):
+    for _ in range(100):
         try:
             httpx.get(f"{API_URL}/destination/1.0.167.0")
         except Exception:
@@ -38,7 +40,7 @@ def test_destination_full():
         "140.16.178.2": ["140.16.176.0/20", "192.168.40.1"],
         "12.3.81.23": ["12.3.80.0/22", "192.168.10.1"],
         "151.251.225.48": ["151.251.225.0/24", "192.168.3.1"],
-        "10.16.0.17": ["0.0.0.0/0", "192.168.30.1"],    # adjust if we remove 0.0.0.0/0
+        "10.16.0.17": ["0.0.0.0/0", "192.168.30.1"],  # adjust if we remove 0.0.0.0/0
         "198.14.34.1": ["198.14.32.0/19", "192.168.30.1"],
     }.items():
         response = httpx.get(f"{API_URL}/destination/{address}")
