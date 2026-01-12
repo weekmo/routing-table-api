@@ -96,6 +96,8 @@ make clean         # Clean artifacts
 
 ## 📦 Deployment
 
+### Deployment Options
+
 Multiple deployment options available:
 
 | Method | Use Case | Complexity | Setup Time | High Availability |
@@ -104,21 +106,75 @@ Multiple deployment options available:
 | **Podman Systemd** | Single server prod | Medium | 10 min | No |
 | **Kubernetes** | Clustered prod | High | 30+ min | Yes |
 
-**Quick Deploy:**
+### Local Development (Podman Compose)
 
 ```bash
-# Local development (recommended)
 make compose-up
+```
 
-# Production (single server with systemd)
+**Details:** See [docker-compose.yml](docker-compose.yml)
+
+### Production Single Server (Podman Systemd)
+
+```bash
 cp podman-systemd/*.service ~/.config/systemd/user/
 systemctl --user enable --now routing-table-api.service
+```
 
-# Kubernetes (production cluster)
+**Details:** See [podman-systemd/](podman-systemd/)
+
+### Production Cluster (Kubernetes)
+
+```bash
 kubectl apply -f kubernetes-test.yaml
 ```
 
-**Deployment guides:** [docker-compose.yml](docker-compose.yml) | [podman-systemd/](podman-systemd/) | [kubernetes-test.yaml](kubernetes-test.yaml)
+**What's included:**
+- **ConfigMap** - Routes data configuration
+- **Deployment** - 1 replica with health checks
+  - Liveness probe: 30s interval, 30s timeout
+  - Readiness probe: 10s interval, 20s initial delay
+  - Resource limits: 512Mi-2Gi memory, 500m-2000m CPU
+- **Service** - ClusterIP exposure on port 5000
+- **Job** - Integration tests with wait-for-API init container
+- **Ingress** (commented) - Optional external access with nginx
+
+**Configuration:**
+- Mounts routes.txt as read-only volume
+- Environment variables: `PYTHONUNBUFFERED=1`, `PROC_NUM=4`
+- Image: `routing-table-api:latest` (local)
+- Test image: `routing-table-api:test`
+
+**Prerequisites:**
+- Kubernetes cluster (1.20+)
+- Local images built: `podman build -t routing-table-api:latest .`
+- Routes file at: `/path/to/routing-table-api/routes.txt`
+
+**Deployment:**
+
+```bash
+# Update the hostPath in kubernetes-test.yaml to your routes.txt location
+# Then apply:
+kubectl apply -f kubernetes-test.yaml
+
+# Check status
+kubectl get pods -l app=routing-table-api
+kubectl logs -l app=routing-table-api -f
+
+# Run tests
+kubectl get jobs
+kubectl logs -l app=routing-table-api-tests -f
+
+# Port forward for local testing
+kubectl port-forward svc/routing-table-api 5000:5000
+```
+
+**Troubleshooting:**
+- Pod stuck pending: Check resource availability (`kubectl describe node`)
+- Tests failing: Verify routes.txt path and API readiness
+- Connection refused: Ensure Service and Deployment are running
+
+**Details:** See [kubernetes-test.yaml](kubernetes-test.yaml)
 
 ---
 
@@ -285,46 +341,7 @@ curl http://localhost:5000/metrics | grep cache
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please follow these guidelines:
-
-### Quick Start
-
-```bash
-# Fork and clone
-git clone https://github.com/yourusername/routing-table-api.git
-cd routing-table-api
-make install
-
-# Create feature branch
-git checkout -b feature/amazing-feature
-
-# Make changes and test
-make test-cov  # Must maintain ≥35% coverage
-make lint      # Must pass
-make type-check # Must pass
-
-# Commit using conventional commits
-git commit -m "feat: add amazing feature"
-```
-
-### Requirements
-
-- ✅ All tests pass (29/29)
-- ✅ Coverage maintained (≥35%)
-- ✅ Linter passes (`make lint`)
-- ✅ Type hints for new code
-- ✅ Google-style docstrings
-- ✅ Follow PEP 8 (enforced by ruff)
-
-### Commit Convention
-
-- `feat:` New feature
-- `fix:` Bug fix
-- `docs:` Documentation only
-- `refactor:` Code refactoring
-- `test:` Adding tests
-- `chore:` Build/tooling
-- `perf:` Performance improvement
+Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines, requirements, and the commit convention.
 
 ---
 
@@ -447,7 +464,6 @@ For production deployments requiring:
 
 **Contact:** Open GitHub issue with `[commercial]` tag
 
-
 ---
 
 ## 📄 License
@@ -463,6 +479,7 @@ This project is open source and free to use. Sponsorship is optional and does no
 - **API Documentation:** http://localhost:5000/docs (Swagger)
 - **Alternative Docs:** http://localhost:5000/redoc
 - **CI/CD Setup:** [.github/CICD_SETUP.md](.github/CICD_SETUP.md)
+- **Contributing:** [CONTRIBUTING.md](CONTRIBUTING.md)
 - **Issues & Bugs:** [GitHub Issues](https://github.com/weekmo/routing-table-api/issues)
 
 ---
