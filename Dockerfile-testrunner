@@ -1,0 +1,8 @@
+FROM python:3.10-bullseye
+
+RUN pip install --no-cache-dir pytest requests
+
+WORKDIR /testwork
+ADD test/ /testwork/test
+
+CMD ["pytest", "-v"]

@@ -1,0 +1,8 @@
+FROM python:3.8.16-slim-bullseye
+WORKDIR /testwork
+ADD routes.txt /testwork/routes.txt
+ADD pyproject.toml /testwork/pyproject.toml
+ADD service/ /testwork/service
+RUN python3 -m pip install --no-cache-dir -U pip setuptools wheel && \
+    python3 -m pip install --no-cache-dir -e .
+CMD ["python3", "-m", "service"]

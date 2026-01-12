@@ -1,244 +1,239 @@
-"""Data processing utilities for routing table operations."""
+"""Data loading and routing table utilities."""
 
-from multiprocessing import Pool
-import ipaddress
-
-import numpy as np
 import pandas as pd
-import polars as pl
+import ipaddress
+import sys
+from typing import Optional
+from service.utils.radix_tree import RadixTree
 
-# Global constants
-MSK4 = int("f" * 8, 16)  # IPv4 mask (0xffffffff)
-MSK6 = int("f" * 32, 16)  # IPv6 mask
-MAX_METRIC = 0x8000  # Default maximum metric
+""" Global params """
+msk4 = int('f' * 8, 16)
+msk6 = int('f' * 32, 16)
+mxmetric = 0x8000
 
-
-def get_df_pandas(filename: str, proc_num: int) -> pd.DataFrame:
+def get_df_pandas(filename: str) -> pd.DataFrame:
     """
-    Load and process routing table from CSV file using pandas.
+    Load routing table from CSV file using pandas.
     
-    This function reads a routing table CSV file and processes it for efficient
-    longest prefix matching operations.
-    
-    Args:
-        filename: Path to CSV file with format: prefix;next_hop
-        proc_num: Number of parallel processes for data preparation
-    
-    Returns:
-        Processed pandas DataFrame with routing table data
-        
-    Raises:
-        FileNotFoundError: If the routing file doesn't exist
-        ValueError: If the file format is invalid
+    This function reads a routing table file with semicolon-separated values
+    and prepares it for LPM operations.
+
+    Parameters
+    ----------
+    filename : str
+        Path to the CSV file with ';' separator (format: prefix;next_hop)
+
+    Returns
+    -------
+    pandas.DataFrame
+        DataFrame with columns: prefix, next_hop, v, addr, prefixlen, metric
     """
-    df = pd.read_csv(filename, sep=";", names=["prefix", "next_hop"])
-    df["v"] = df["prefix"].map(lambda x: 6 if ":" in x else 4)
-    df[["addr", "prefixlen"]] = df["prefix"].str.split("/", expand=True)
-    df["prefixlen"] = df["prefixlen"].astype(int)
-    df["metric"] = MAX_METRIC
-    return __multi_process_prep_df(df, proc_num)
-
-
-def get_df_polars(filename: str, proc_num: int) -> pd.DataFrame:
-    """
-    Load and process routing table from CSV file using polars (faster).
-    
-    This function uses Polars for efficient CSV parsing, then converts to pandas
-    for compatibility with existing LPM functions.
-    
-    Args:
-        filename: Path to CSV file with format: prefix;next_hop
-        proc_num: Number of parallel processes for data preparation
-    
-    Returns:
-        Processed pandas DataFrame with routing table data
-        
-    Raises:
-        FileNotFoundError: If the routing file doesn't exist
-        ValueError: If the file format is invalid
-    """
-    df = (
-        pl.read_csv(filename, separator=";", has_header=False, new_columns=["prefix", "next_hop"])
-        .lazy()
-        .with_columns(
-            [
-                pl.lit(MAX_METRIC).cast(pl.UInt16).alias("metric"),
-                pl.col("prefix").str.split("/").alias("div"),
-            ]
-        )
-        .with_columns(
-            pl.struct(
-                [
-                    pl.col("div").list.get(0).alias("addr"),
-                    pl.col("div").list.get(1).cast(pl.UInt8).alias("prefixlen"),
-                ]
-            ).alias("div")
-        )
-        .unnest("div")
-        .with_columns(
-            pl.when(pl.col("addr").str.contains(":"))
-            .then(pl.lit(6))
-            .otherwise(pl.lit(4))
-            .cast(pl.UInt8)
-            .alias("v")
-        )
-        .collect()
-        .to_pandas()
-    )
-    return __multi_process_prep_df(df, proc_num)
-
-
-def __multi_process_prep_df(df: pd.DataFrame, proc_num: int) -> pd.DataFrame:
-    """
-    Split DataFrame and process in parallel using multiprocessing.
-    
-    Args:
-        df: DataFrame to process
-        proc_num: Number of parallel processes
-        
-    Returns:
-        Concatenated processed DataFrame
-    """
-    sub_frames = np.array_split(df, proc_num)
-    with Pool(proc_num) as pool:
-        result = pool.map(__prep_df, sub_frames)
-    return pd.concat(result)
-
-
-def __prep_df(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Prepare DataFrame by converting IP addresses to hex format for fast matching.
-    
-    This function processes both IPv4 and IPv6 addresses, converting them to
-    hexadecimal representation for efficient bitwise operations during LPM.
-    
-    Args:
-        df: DataFrame with raw routing data
-        
-    Returns:
-        DataFrame with hex-encoded addresses and masks
-    """
-    # Process IPv4 routes
-    v4_mask = df["v"] == 4
-    if v4_mask.any():
-        df.loc[v4_mask, "nhn"] = df.loc[v4_mask, "next_hop"].map(
-            lambda x: int("".join([f"{int(i):02x}" for i in x.split(".")]), 16)
-        )
-        df.loc[v4_mask, "addr"] = df.loc[v4_mask, "addr"].map(
-            lambda x: "".join([f"{int(i):02x}" for i in x.split(".")])
-        )
-        df.loc[v4_mask, "mask"] = df.loc[v4_mask, "prefixlen"].map(
-            lambda x: f"{(MSK4 << (32 - x)) & MSK4:08x}"
-        )
-        # Normalize next hop numbers
-        if df.loc[v4_mask, "nhn"].notna().any():
-            df.loc[v4_mask, "nhn"] -= df.loc[v4_mask, "nhn"].min()
-
-    # Process IPv6 routes
-    v6_mask = df["v"] == 6
-    if v6_mask.any():
-        df.loc[v6_mask, "nhn"] = df.loc[v6_mask, "next_hop"].map(
-            lambda x: int(ipaddress.ip_network(x).network_address)
-        )
-        df.loc[v6_mask, "addr"] = df.loc[v6_mask, "addr"].map(
-            lambda x: f"{int(ipaddress.ip_network(x).network_address):032x}"
-        )
-        df.loc[v6_mask, "mask"] = df.loc[v6_mask, "prefixlen"].map(
-            lambda x: f"{(MSK6 << (128 - x)) & MSK6:032x}"
-        )
-        # Normalize next hop numbers
-        if df.loc[v6_mask, "nhn"].notna().any():
-            df.loc[v6_mask, "nhn"] -= df.loc[v6_mask, "nhn"].min()
-
+    df = pd.read_csv(filename, sep=';', names=["prefix", "next_hop"])
+    df['v'] = df["prefix"].map(lambda x: 6 if ':' in x else 4)
+    df[['addr', 'prefixlen']] = df['prefix'].str.split('/', expand=True)
+    df['prefixlen'] = df['prefixlen'].astype(int)
+    df['metric'] = mxmetric
     return df
 
 
-def lpm_map(df: pd.DataFrame, prefix: ipaddress.IPv4Network | ipaddress.IPv6Network) -> pd.DataFrame:
+def get_df_polars(filename: str) -> pd.DataFrame:
     """
-    Perform longest prefix match (LPM) lookup using vectorized operations.
+    Load routing table from CSV file.
     
-    This is an optimized LPM implementation using pandas Series.map() for
-    better performance compared to iterative approaches.
-    
-    Args:
-        df: Routing table DataFrame
-        prefix: IP network to lookup
-        
-    Returns:
-        DataFrame containing all matching routes (may be empty)
-    """
-    ipadd = prefix.network_address
-    int_ipadd = int(ipadd)
-    version = ipadd.version
-    mask_hex_len = f"%0{1 << (version - 1)}x"
+    Note: Now uses pandas directly for simplicity. The name is kept for
+    backward compatibility.
 
-    # Filter by IP version and perform bitwise mask matching
-    version_mask = df["v"] == version
-    masked_ips = df.loc[version_mask, "mask"].map(
-        lambda x: mask_hex_len % (int(x, 16) & int_ipadd)
+    Parameters
+    ----------
+    filename : str
+        Path to the CSV file with ';' separator
+
+    Returns
+    -------
+    pandas.DataFrame
+        DataFrame with routing table data
+    """
+    return get_df_pandas(filename)
+
+def prep_df(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Prepare DataFrame by adding computed columns for LPM operations.
+    
+    Adds hexadecimal representations of addresses and masks, and converts
+    next-hop addresses to integers for tie-breaking.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Raw routing table dataframe
+
+    Returns
+    -------
+    pandas.DataFrame
+        Enhanced dataframe with addr, mask, and nhn columns
+    """
+    # IPv4
+    df.loc[df['v'] == 4, 'nhn'] = df.loc[df['v'] == 4, 'next_hop'].map(
+        lambda x: int(''.join([f'{int(i):02x}' for i in x.split('.')]), 16)
     )
-    addr_match = df.loc[version_mask, "addr"] == masked_ips
-
-    return df.loc[addr_match.loc[addr_match].index]
-
-
-def lpm_update(
-    df: pd.DataFrame,
-    prefix_ip: ipaddress.IPv4Network | ipaddress.IPv6Network,
-    nh: str,
-    metric: int,
-    matchd: str = "orlonger",
-) -> pd.DataFrame:
-    """
-    Search and update routes matching specified criteria.
+    df.loc[df['v'] == 4, 'addr'] = df.loc[df['v'] == 4, 'addr'].map(
+        lambda x: ''.join([f'{int(i):02x}' for i in x.split('.')])
+    )
+    df.loc[df['v'] == 4, 'mask'] = df.loc[df['v'] == 4, 'prefixlen'].map(
+        lambda x: f'{(msk4 << (32 - x)) & msk4:08x}'
+    )
     
-    Args:
-        df: Routing table DataFrame to search
-        prefix_ip: IP network prefix to match
-        nh: Next hop IP address (as string)
-        metric: New metric value to set
-        matchd: Match type - "exact" or "orlonger" (default)
-        
-    Returns:
-        DataFrame with updated routes (may be empty if no matches)
+    # IPv6
+    df.loc[df['v'] == 6, 'nhn'] = df.loc[df['v'] == 6, 'next_hop'].map(
+        lambda x: int(ipaddress.ip_network(x).network_address)
+    ).astype('object')
+    df.loc[df['v'] == 6, 'addr'] = df.loc[df['v'] == 6, 'addr'].map(
+        lambda x: f'{int(ipaddress.ip_network(x).network_address):032x}'
+    )
+    df.loc[df['v'] == 6, 'mask'] = df.loc[df['v'] == 6, 'prefixlen'].map(
+        lambda x: f'{(msk6 << (128 - x)) & msk6:032x}'
+    )
+    return df
+
+def lpm_itr(df: pd.DataFrame, ipaddr: ipaddress.IPv4Network) -> pd.DataFrame:
     """
-    if matchd == "exact":
-        # Exact match: both prefix and next hop must match exactly
-        next_hop_df = df.loc[
-            (df["next_hop"] == nh) & (df["prefix"] == prefix_ip.with_prefixlen)
-        ].copy()
-    else:
-        # Or-longer match: find all routes within the prefix that use this next hop
-        next_hop_df = lpm_map(df, prefix_ip)
-        next_hop_df = next_hop_df.loc[
-            (next_hop_df["next_hop"] == nh) & (next_hop_df["prefixlen"] != 0)
-        ].copy()
-
-    next_hop_df["metric"] = metric
-    return next_hop_df
-
-
-def lpm_itr(df: pd.DataFrame, ipaddr: ipaddress.IPv4Network | ipaddress.IPv6Network) -> pd.DataFrame:
-    """
-    Perform LPM lookup using tuple iteration (slower, kept for reference).
+    Perform LPM using tuple iteration (legacy method).
     
-    This is a reference implementation using row iteration. The lpm_map function
-    is preferred for better performance.
-    
-    Args:
-        df: Routing table DataFrame
-        ipaddr: IP network to lookup
-        
-    Returns:
-        DataFrame containing all matching routes
+    This is the slower O(n) approach, kept for compatibility.
+    Consider using radix tree lookup instead.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Routing table dataframe
+    ipaddr : ipaddress.ip_network
+        IP address to lookup
+
+    Returns
+    -------
+    pandas.DataFrame
+        Filtered dataframe with matching routes
     """
     ipad = ipaddr.network_address
     result = []
     for row in df.itertuples():
-        if int(row.mask, 16) & int(ipad) == int(row.addr, 16) and int(row.v) == ipad.version:
+        if (int(row.mask, 16) & int(ipad) == int(row.addr, 16) and int(row.v) == ipad.version):
             result.append(row[0])
     return df.loc[result]
 
+def lpm_map(df: pd.DataFrame, prefix: ipaddress.IPv4Network) -> pd.DataFrame:
+    """
+    Perform LPM using pandas map operations (legacy method).
+    
+    This is the O(n) linear scan approach, kept for compatibility.
+    Consider using radix tree lookup instead for better performance.
 
-if __name__ == "__main__":
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Routing table dataframe
+    prefix : ipaddress.ip_network
+        IP network/address to lookup
+
+    Returns
+    -------
+    pandas.DataFrame
+        Filtered dataframe with matching routes
+    """
+    ipadd = prefix.network_address
+    int_ipadd = int(ipadd)
+    if ipadd.version == 4:
+        mas_ip = df.loc[df['v'] == 4, 'mask'].map(lambda x: f'{int(x, 16) & int_ipadd:08x}')
+        mask = df.loc[df['v'] == 4, 'addr'] == mas_ip
+    else:
+        mas_ip = df.loc[df['v'] == 6, 'mask'].map(lambda x: f'{int(x, 16) & int_ipadd:032x}')
+        mask = df.loc[df['v'] == 6, 'addr'] == mas_ip
+    return df.loc[mask.loc[mask].index]
+
+
+def build_radix_tree(df: pd.DataFrame) -> RadixTree:
+    """
+    Build a radix tree from the routing table DataFrame.
+    
+    This provides O(prefix_length) lookup complexity instead of O(n).
+    
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        The routing table dataframe with columns: prefix, next_hop, metric
+    
+    Returns
+    -------
+    RadixTree
+        A radix tree containing all routes
+    """
+    import sys
+    tree = RadixTree()
+    total = len(df)
+    
+    print(f"Building radix tree from {total:,} routes...", file=sys.stderr, flush=True)
+    
+    # Use itertuples for faster iteration
+    for idx, row in enumerate(df.itertuples(), 1):
+        tree.insert(
+            prefix=row.prefix,
+            next_hop=row.next_hop,
+            metric=row.metric
+        )
+        
+        # Progress indicator every 100k routes
+        if idx % 100000 == 0:
+            print(f"  Processed {idx:,}/{total:,} routes ({idx*100//total}%)", 
+                  file=sys.stderr, flush=True)
+    
+    print(f"✅ Radix tree built: {tree.route_count:,} routes loaded", 
+          file=sys.stderr, flush=True)
+    
+    return tree
+
+
+def lpm_lookup_radix(tree: RadixTree, ip_address: str) -> pd.DataFrame:
+    """
+    Perform LPM lookup using radix tree.
+    
+    This is significantly faster than lpm_map for large routing tables.
+    Returns a DataFrame compatible with existing code.
+    
+    Parameters
+    ----------
+    tree : RadixTree
+        The radix tree containing routes
+    ip_address : str
+        IP address to lookup
+    
+    Returns
+    -------
+    pandas.DataFrame
+        DataFrame with matching routes
+    """
+    try:
+        addr = ipaddress.ip_address(ip_address)
+    except (ValueError, ipaddress.AddressValueError):
+        return pd.DataFrame()
+    
+    # Get all matching routes from radix tree
+    routes = tree.lookup(str(addr))
+    
+    if not routes:
+        return pd.DataFrame()
+    
+    # Convert to DataFrame format compatible with existing code
+    data = {
+        'prefix': [r.prefix for r in routes],
+        'next_hop': [r.next_hop for r in routes],
+        'metric': [r.metric for r in routes],
+        'prefixlen': [r.prefix_len for r in routes],
+        'nhn': [r.nhn for r in routes],
+        'v': [r.version for r in routes]
+    }
+    
+    return pd.DataFrame(data)
+
+
+if __name__ == '__main__':
     pass
