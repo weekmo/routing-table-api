@@ -1,5 +1,0 @@
-pyarrow==10.0.1
-pandas==1.5.2
-fastapi==0.88.0
-uvicorn==0.20.0
-polars==0.15.5
