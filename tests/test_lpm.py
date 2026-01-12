@@ -2,7 +2,7 @@
 
 import pytest
 import ipaddress
-from service.utils.radix_tree import RadixTree, RouteInfo
+from service.lib.radix_tree import RadixTree, RouteInfo
 
 
 class TestRadixTreeBasic:

@@ -11,11 +11,11 @@ import time
 from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
 
 # Local libraries
-from service.utils.data import get_df_polars, prep_df, lpm_map, build_radix_tree, lpm_lookup_radix
+from service.lib.data import get_df_polars, prep_df, lpm_map, build_radix_tree, lpm_lookup_radix
 from service.config import settings
-from service.models import RouteResponse, MetricUpdateResponse, HealthResponse
+from service.lib.models import RouteResponse, MetricUpdateResponse, HealthResponse
 import pandas as pd
-from service.utils.radix_tree import RadixTree
+from service.lib.radix_tree import RadixTree
 
 # Configure logging
 logging.basicConfig(

@@ -4,7 +4,7 @@ import pandas as pd
 import ipaddress
 import sys
 from typing import Optional
-from service.utils.radix_tree import RadixTree
+from service.lib.radix_tree import RadixTree
 
 """ Global params """
 msk4 = int('f' * 8, 16)

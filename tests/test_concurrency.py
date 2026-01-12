@@ -4,7 +4,7 @@ import pytest
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from service.utils.radix_tree import RadixTree
+from service.lib.radix_tree import RadixTree
 import random
 
 
