@@ -1,5 +1,10 @@
 # Routing Table API
 
+![Tests](https://img.shields.io/badge/tests-34%20passing-success)
+![Python](https://img.shields.io/badge/python-3.8%2B-blue)
+![License](https://img.shields.io/badge/license-GPL--3.0-blue)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.128%2B-009688)
+
 Routing table lookup service implementing Longest Prefix Match (LPM) using a radix tree. Provides REST API for route lookups and metric updates with Prometheus monitoring.
 
 ## Features
@@ -9,14 +14,16 @@ Routing table lookup service implementing Longest Prefix Match (LPM) using a rad
 - Thread-safe concurrent operations
 - Prometheus metrics export
 - IPv4 and IPv6 support
-- 29 unit and concurrency tests
+- 34 comprehensive tests (20 unit, 9 concurrency, 5 integration)
 
 ## Quick Start
 
 ### Prerequisites
 
-- Python 3.8+
-- Docker (optional, for containerized deployment)
+- Python 3.8+ (3.11+ recommended)
+- Podman or Docker (for containerized deployment)
+- ~200MB disk space (100MB for routes.txt + dependencies)
+- 512MB RAM minimum (2GB recommended for production)
 
 ### Installation
 
@@ -241,9 +248,13 @@ routing_cache_hits_total 12543.0
 ### Benchmark Results
 
 **Radix Tree vs Linear Scan:**
-- Radix tree: **15μs** average lookup time
-- Linear scan: **307ms** average lookup time
-- **Speedup: 20,928x faster**
+
+| Method | Average Lookup Time | Performance |
+|--------|-------------------|-------------|
+| Radix tree | 15μs | Baseline |
+| Linear scan | 307ms | 20,928x slower |
+
+**Note:** Benchmark performed on 1,090,210 routes. Actual performance varies with dataset size and hardware.
 
 **With LRU Cache:**
 - Cache hit rate: ~80-90% for typical workloads
@@ -272,10 +283,10 @@ pytest tests/test_concurrency.py -v
 pytest tests/ --cov=service --cov-report=html
 ```
 
-**Test coverage:**
-- 20 unit tests (LPM algorithm correctness)
-- 9 concurrency tests (thread safety)
-- 5 integration tests (API endpoints)
+**Test coverage (34 total):**
+- 20 unit tests (LPM algorithm correctness in test_lpm.py)
+- 9 concurrency tests (thread safety in test_concurrency.py)
+- 5 integration tests (API endpoints in test_service.py)
 
 ### Code Quality
 
@@ -301,13 +312,10 @@ routing-table-api/
 │   ├── __init__.py
 │   ├── main.py              # FastAPI application
 │   ├── config.py            # Configuration settings
-│   ├── __main__.py          # Module entry point
-│   ├── models/
-│   │   ├── __init__.py
-│   │   └── routes.py        # Pydantic models
-│   └── utils/
+│   └── lib/                 # Core library modules
 │       ├── __init__.py
-│       ├── data.py          # Data loading utilities
+│       ├── data.py          # Data loading and utilities
+│       ├── models.py        # Pydantic models
 │       └── radix_tree.py    # RadixTree implementation
 ├── tests/
 │   ├── __init__.py
@@ -375,34 +383,34 @@ export MAX_METRIC=65535
 
 ## Docker Deployment
 
-### Using docker-compose
+### Using podman-compose
 
 ```bash
 # Start all services
-docker-compose up -d
+podman-compose up -d
 
 # View logs
-docker-compose logs -f
+podman-compose logs -f api
 
 # Stop services
-docker-compose down
+podman-compose down
 ```
 
-### Manual Docker
+### Manual Podman
 
 ```bash
 # Build
-docker build -f Dockerfile-service -t routing-table-api:latest .
+podman build --target runtime -t routing-table-api:latest .
 
 # Run
-docker run -d \
+podman run -d \
   -p 5000:5000 \
-  -v $(pwd)/routes.txt:/testwork/routes.txt \
+  -v $(pwd)/routes.txt:/app/routes.txt:ro,Z \
   --name routing-api \
   routing-table-api:latest
 
 # Stop and remove
-docker stop routing-api && docker rm routing-api
+podman stop routing-api && podman rm routing-api
 ```
 
 ---
@@ -509,9 +517,9 @@ GPL-3.0-or-later
 - Error handling for invalid IPs
 
 **Changed:**
-- Removed polars dependency (using pandas only)
+- Migrated from pandas to polars for better performance
 - Updated to use pyproject.toml instead of requirements.txt
-- Makefile now uses docker-compose instead of podman
+- Migrated build system from Docker to Podman
 - Enhanced logging throughout service
 
 ---
@@ -519,6 +527,8 @@ GPL-3.0-or-later
 ## Support
 
 For issues and questions, please open a GitHub issue.
+
+---
 
 ## License
 
