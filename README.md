@@ -7,6 +7,35 @@
 
 Routing table lookup service implementing Longest Prefix Match (LPM) using a radix tree. Provides REST API for route lookups and metric updates with Prometheus monitoring.
 
+## Table of Contents
+
+- [Features](#features)
+- [Quick Start](#quick-start)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+  - [Running the Service](#running-the-service)
+- [API Documentation](#api-documentation)
+  - [Health Check](#1-health-check)
+  - [Route Lookup](#2-route-lookup)
+  - [Update Metric (orlonger)](#3-update-route-metric-orlonger)
+  - [Update Metric (match type)](#4-update-route-metric-with-match-type)
+  - [Prometheus Metrics](#5-prometheus-metrics)
+- [Performance](#performance)
+- [Development](#development)
+- [Algorithm Details](#algorithm-details)
+- [Configuration](#configuration)
+- [Deployment](#deployment)
+  - [Docker Compose](#docker-compose-development)
+  - [Podman Pod](#podman-pod)
+  - [Podman Systemd](#podman-systemd)
+  - [Kubernetes](#kubernetes)
+  - [Deployment Comparison](#deployment-comparison)
+- [Monitoring](#monitoring)
+- [Troubleshooting](#troubleshooting)
+- [Contributing](#contributing)
+- [Sponsor](#sponsor)
+- [License](#license)
+
 ## Features
 
 - Radix tree implementation with O(k) lookup complexity (k = prefix length)
@@ -381,76 +410,369 @@ export MAX_METRIC=65535
 
 ---
 
-## Docker Deployment
+## Deployment
 
-### Using podman-compose
+The Routing Table API supports multiple deployment methods depending on your environment and requirements.
 
+### Docker Compose (Development)
+
+**Best for:** Local development and testing
+
+**File:** `docker-compose.yml`
+
+#### Usage
 ```bash
-# Start all services
+# Build and run with tests
+podman-compose up --build --abort-on-container-exit
+
+# Run in background
 podman-compose up -d
 
 # View logs
 podman-compose logs -f api
+podman-compose logs -f tests
 
-# Stop services
+# Stop
 podman-compose down
+
+# Rebuild without cache
+podman-compose build --no-cache
 ```
 
-### Manual Podman
-
-```bash
-# Build
-podman build --target runtime -t routing-table-api:latest .
-
-# Run
-podman run -d \
-  -p 5000:5000 \
-  -v $(pwd)/routes.txt:/app/routes.txt:ro,Z \
-  --name routing-api \
-  routing-table-api:latest
-
-# Stop and remove
-podman stop routing-api && podman rm routing-api
-```
+#### Features
+- Automatic health checks
+- Test runner waits for API to be ready
+- Volume mount for routes.txt (no rebuild needed)
+- Multi-stage build optimization
+- Two services: `api` (runtime) and `tests` (development)
 
 ---
 
-## Monitoring with Prometheus
+### Podman Pod
 
-**Sample Prometheus configuration:**
+**Best for:** Local testing with Kubernetes-like pod structure
 
+**File:** `podman-pod.yaml`
+
+#### Usage
+```bash
+# Build images first
+podman build -t routing-table-api:latest --target runtime .
+podman build -t routing-table-api:test --target development .
+
+# Run the pod
+podman play kube podman-pod.yaml
+
+# Check status
+podman pod ps
+podman ps -a --pod
+
+# View logs
+podman logs -f routing-table-api-pod-api
+podman logs -f routing-table-api-pod-tests
+
+# Stop and remove
+podman pod stop routing-table-api-pod
+podman pod rm routing-table-api-pod
+
+# Or use play kube to clean up
+podman play kube --down podman-pod.yaml
+```
+
+#### Features
+- Containers share network namespace (communicate via localhost)
+- Single pod unit (like Kubernetes)
+- Compatible with `podman generate kube` for migration
+- Health checks with liveness and readiness probes
+- Resource limits defined
+
+**Key Difference from Docker Compose:** Containers in the pod share the same network namespace, so they communicate via `localhost` instead of service names.
+
+---
+
+### Podman Systemd
+
+**Best for:** Production deployments on single servers, auto-restart, system services
+
+**Directory:** `podman-systemd/`
+
+#### Installation
+```bash
+# For rootless (user services) - recommended
+mkdir -p ~/.config/systemd/user/
+cp podman-systemd/*.service ~/.config/systemd/user/
+
+# Update ROUTES_FILE path in routing-table-api.service
+vi ~/.config/systemd/user/routing-table-api.service
+# Change: Environment=ROUTES_FILE=/path/to/routing-table-api/routes.txt
+
+# Reload systemd
+systemctl --user daemon-reload
+
+# Enable auto-start on boot
+systemctl --user enable routing-table-api.service
+
+# Start the service
+systemctl --user start routing-table-api.service
+```
+
+#### Usage
+```bash
+# Check status
+systemctl --user status routing-table-api.service
+
+# View logs (live tail)
+journalctl --user -u routing-table-api.service -f
+
+# Run tests
+systemctl --user start routing-table-api-test.service
+
+# Restart API
+systemctl --user restart routing-table-api.service
+
+# Stop
+systemctl --user stop routing-table-api.service
+```
+
+#### Features
+- **Automatic restart on failure:** Service restarts automatically if it crashes
+- **Boot on startup:** Service starts automatically on system boot
+- **Resource limits:** CPU (200%) and memory (2GB) enforced by systemd
+- **Integrated logging:** Centralized logging via journald
+- **Health checks:** Container health monitoring built-in
+- **Rootless support:** Can run as non-root user
+
+---
+
+### Kubernetes
+
+**Best for:** Production clusters, high availability, horizontal scaling
+
+**File:** `kubernetes-test.yaml`
+
+#### Local Testing with Minikube
+
+```bash
+# Start minikube
+minikube start
+
+# Use minikube's Docker daemon
+eval $(minikube docker-env)
+
+# Build images
+docker build -t routing-table-api:latest --target runtime .
+docker build -t routing-table-api:test --target development .
+
+# Deploy
+kubectl apply -f kubernetes-test.yaml
+
+# Check deployment status
+kubectl get deployments
+kubectl get pods -l app=routing-table-api
+
+# View API logs
+kubectl logs -l app=routing-table-api -f
+
+# Access API (port forward to localhost)
+kubectl port-forward service/routing-table-api 5000:5000
+
+# Clean up
+kubectl delete -f kubernetes-test.yaml
+```
+
+#### Production Deployment
+
+For production clusters:
+1. Push images to container registry
+2. Update `kubernetes-test.yaml` with registry URLs
+3. Replace hostPath with PersistentVolume or ConfigMap
+4. Adjust resource requests/limits
+5. Add Ingress for external access (optional)
+6. Deploy with `kubectl apply -f kubernetes-test.yaml`
+
+#### Features
+- **High availability:** Multi-replica deployments with automatic pod rescheduling
+- **Load balancing:** Service distributes traffic across pods
+- **Health checks:** Liveness and readiness probes for automatic recovery
+- **Resource management:** CPU and memory requests/limits
+- **Rolling updates:** Zero-downtime deployments
+- **Horizontal pod autoscaling:** Scale based on CPU/memory (optional)
+
+---
+
+### Deployment Comparison
+
+| Feature | Docker Compose | Podman Pod | Podman Systemd | Kubernetes |
+|---------|---------------|------------|----------------|------------|
+| **Use Case** | Development | Local Testing | Production (Single Host) | Production (Cluster) |
+| **Complexity** | Low | Low | Medium | High |
+| **Setup Time** | Minutes | Minutes | 10-15 minutes | Hours |
+| **High Availability** | No | No | No | Yes |
+| **Auto-restart** | Yes | Yes | Yes | Yes |
+| **Boot on Startup** | Optional | No | Yes | Yes |
+| **Horizontal Scaling** | No | No | No | Yes |
+| **Load Balancing** | No | No | No | Yes |
+| **Health Checks** | Yes | Yes | Yes | Yes |
+| **Resource Limits** | Optional | Yes | Yes | Yes |
+| **Multi-host** | No | No | No | Yes |
+
+**Recommendations:**
+- **Local Development:** Use Docker Compose for simplicity
+- **CI/CD Testing:** Use Docker Compose or Podman Pod
+- **Single Server Production:** Use Podman Systemd for reliability
+- **Clustered Production:** Use Kubernetes for scale and high availability
+
+---
+
+## Monitoring
+
+### Prometheus Metrics
+
+All deployments expose Prometheus metrics at `GET /metrics`
+
+#### Scraping Configuration
+
+**prometheus.yml:**
 ```yaml
-# prometheus.yml
 scrape_configs:
-  - job_name: 'routing-api'
+  - job_name: 'routing-table-api'
     static_configs:
-      - targets: ['localhost:5000']
+      - targets: ['routing-table-api:5000']
     metrics_path: '/metrics'
     scrape_interval: 15s
 ```
 
-**Key metrics to monitor:**
-- `routing_lookup_latency_seconds`: Response time SLO
-- `routing_cache_hits_total / (routing_cache_hits_total + routing_cache_misses_total)`: Cache hit rate
-- `routing_errors_total`: Error rate
-- `routing_table_routes`: Route count stability
+**For Kubernetes:**
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: routing-table-api
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "5000"
+    prometheus.io/path: "/metrics"
+```
+
+#### Key Metrics
+
+| Metric | Type | Description |
+|--------|------|-------------|
+| `routing_lookups_total` | Counter | Total number of IP lookups performed |
+| `routing_lookup_latency_seconds` | Histogram | Lookup latency distribution |
+| `routing_cache_hits_total` | Counter | Number of cache hits |
+| `routing_cache_misses_total` | Counter | Number of cache misses |
+| `routing_table_routes` | Gauge | Current number of routes loaded |
+| `routing_errors_total` | Counter | Total errors by type |
+| `routing_metric_updates_total` | Counter | Total metric update operations |
+
+### Logging
+
+**Docker Compose:**
+```bash
+podman-compose logs -f api
+```
+
+**Podman Systemd:**
+```bash
+journalctl --user -u routing-table-api.service -f
+```
+
+**Kubernetes:**
+```bash
+kubectl logs -l app=routing-table-api -f
+```
+
+### Health Checks
+
+All deployments include health checks to ensure the service is ready before accepting traffic.
+
+**Health Endpoint:** `GET /health`
+
+**Expected Response:** HTTP 200 with JSON:
+```json
+{
+  "status": "healthy",
+  "routes_loaded": 1090210,
+  "cache_size": 0,
+  "uptime_seconds": 45.2
+}
+```
+
+**Configuration:**
+
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| **Interval** | 30 seconds | How often to check |
+| **Timeout** | 10 seconds | Request timeout |
+| **Start Period** | 20 seconds | Grace period (route loading takes ~15s) |
+| **Retries** | 3 | Failures before marked unhealthy |
+
+**Why Health Checks Matter:** The API loads 1,090,210 routes on startup (12-15 seconds). Health checks prevent traffic before routes are loaded.
 
 ---
 
 ## Troubleshooting
 
-### Service won't start
+### API Won't Start
 
-**Error:** `FileNotFoundError: routes.txt`
 ```bash
-# Ensure routes.txt is in the correct location
-ls -l routes.txt
+# Check logs
+podman-compose logs api
+# or
+journalctl --user -u routing-table-api.service
+# or
+kubectl logs -l app=routing-table-api
 
-# Or set custom path
-export ROUTES_FILE=/path/to/routes.txt
+# Common issues:
+# - routes.txt not found: Check volume mount path
+# - Out of memory: Increase memory limit (need ~512MB minimum)
+# - Port already in use: Check if another service is on port 5000
 ```
 
-### Slow lookups
+### Tests Failing
+
+```bash
+# Ensure API is healthy first
+curl http://localhost:5000/health
+
+# Check test logs
+podman-compose logs tests
+# or
+kubectl logs job/routing-table-api-tests
+
+# Common issues:
+# - API not ready: Increase health check start period
+# - Wrong API_URL: Verify environment variable
+# - Network issues: Check connectivity between containers
+```
+
+### Health Check Failing
+
+```bash
+# Test health endpoint manually
+curl http://localhost:5000/health
+
+# If it times out:
+# - Routes still loading (wait 20-30 seconds after startup)
+# - Not enough memory (check container memory)
+# - Application crashed (check logs)
+```
+
+### High Memory Usage
+
+```bash
+# Monitor memory
+podman stats
+# or
+kubectl top pods
+
+# Routes table uses ~300-500MB
+# With cache: Can grow to 1-2GB
+# Set resource limits to prevent OOM
+```
+
+### Slow Lookups
 
 **Check cache statistics:**
 ```bash
@@ -458,21 +780,7 @@ export ROUTES_FILE=/path/to/routes.txt
 curl http://localhost:5000/metrics | grep cache
 
 # Expected cache hit rate: 80-90%
-# If low, increase cache size in service/main.py:
-@lru_cache(maxsize=50000)  # Increase from 10000
-```
-
-### High memory usage
-
-**With 1M routes:**
-- DataFrame: ~150MB
-- Radix tree: ~200MB
-- Total: ~400-500MB expected
-
-**Reduce memory:**
-```python
-# Decrease cache size
-@lru_cache(maxsize=1000)  # Reduce from 10000
+# If low, increase cache size in service/main.py
 ```
 
 ---
