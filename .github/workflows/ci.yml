@@ -46,6 +46,9 @@ jobs:
           --cov-report=xml \
           --cov-report=term-missing \
           -v
+   
+    - name: Codecov
+      uses: codecov/codecov-action@v7.0.0
     
     - name: Upload coverage to Codecov
       if: matrix.python-version == '3.11'
